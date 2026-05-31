@@ -1,0 +1,55 @@
+:root {
+  /* Surfaces */
+  --surface: #f8f9ff;
+  --surface-dim: #cbdbf5;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #eff4ff;
+  --surface-container: #e5eeff;
+  --on-surface: #0b1c30;
+  --on-surface-variant: #45464d;
+  --outline: #76777d;
+  --outline-variant: #e2e8f0;
+
+  /* Brand */
+  --theme-primary: #004a99;
+  --secondary: #2563eb;
+  --secondary-dark: #0051d5;
+  --on-primary: #ffffff;
+
+  /* Signals */
+  --success: #10b981;
+  --success-container: #d1fae5;
+  --warning: #f59e0b;
+  --warning-container: #fef3c7;
+  --error: #ba1a1a;
+  --error-container: #ffdad6;
+
+  /* Typography scale */
+  --text-display-lg: 48px;
+  --text-headline-lg: 32px;
+  --text-headline-lg-mobile: 24px;
+  --text-headline-md: 20px;
+  --text-body-lg: 18px;
+  --text-body-md: 16px;
+  --text-label-md: 14px;
+  --text-label-sm: 12px;
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 48px;
+  --gutter: 20px;
+  --container-max: 1280px;
+  --sidebar-width: 240px;
+  --control-panel-width: 300px;
+
+  /* Radius */
+  --radius-sm: 0.125rem;
+  --radius-default: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-full: 9999px;
+}
