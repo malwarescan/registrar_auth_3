@@ -1,6 +1,7 @@
-import type { DomainAnalysis, DomainCandidate, SignalScores, OptimizeMode, SignalWeights, AvailabilityStatus } from "@/lib/types/domain";
-import { OPTIMIZE_PRESETS } from "@/lib/types/domain";
+import type { DomainAnalysis, DomainCandidate, DecisionStack, SignalScores, OptimizeMode, SignalWeights, AvailabilityStatus } from "@/lib/types/domain";
+import { DEFAULT_SIGNAL_WEIGHTS, OPTIMIZE_PRESETS } from "@/lib/types/domain";
 import type { BuyingIntent } from "@/lib/types/domain-brief";
+import { isRecommendationEligible } from "@/lib/domains/availability";
 import { analyzeQueryMatch, getTldTrust, analyzeQueryContext, parseDomain, getMeaningfulScoringTokens } from "./parse-domain";
 
 export type ScoringContext = {
@@ -278,6 +279,83 @@ export function computeValueScore(signals: SignalScores, price: number): number 
   return clamp(avgSignal - pricePenalty);
 }
 
+export function computeRiskScore(signals: SignalScores, domain: string): number {
+  const parsed = parseDomain(domain);
+  let risk = 100 - signals.trust;
+  if (parsed.hasHyphen) risk += 8;
+  if (parsed.length > 14) risk += 6;
+  if (parsed.tld !== "com") risk += 5;
+  return clamp(risk);
+}
+
+export type PickDecisionStackOptions = {
+  weights?: SignalWeights;
+  intent?: BuyingIntent | null;
+};
+
+function enrichForDecisionStack(candidate: DomainCandidate): DomainCandidate {
+  return {
+    ...candidate,
+    valueScore: candidate.valueScore ?? computeValueScore(candidate.signals, candidate.price),
+    riskScore: candidate.riskScore ?? computeRiskScore(candidate.signals, candidate.domain),
+  };
+}
+
+/** Pick buyable-only decision stack slots with unique domains where possible. */
+export function pickDecisionStack(
+  candidates: DomainCandidate[],
+  options?: PickDecisionStackOptions
+): DecisionStack {
+  const pool = candidates.filter((c) => isRecommendationEligible(c));
+  if (pool.length === 0) throw new Error("No eligible candidates for decision stack");
+
+  const weights = options?.weights ?? DEFAULT_SIGNAL_WEIGHTS;
+  const intent = options?.intent;
+  const enriched = pool.map(enrichForDecisionStack);
+  const used = new Set<string>();
+
+  function pickUnique(
+    compare: (a: DomainCandidate, b: DomainCandidate) => number,
+    required = true
+  ): DomainCandidate | undefined {
+    const sorted = [...enriched].sort(compare);
+    for (const c of sorted) {
+      if (!used.has(c.domain)) {
+        used.add(c.domain);
+        return c;
+      }
+    }
+    if (!required) return undefined;
+    used.add(sorted[0].domain);
+    return sorted[0];
+  }
+
+  const overall = pickUnique((a, b) => compositeScore(b, weights) - compositeScore(a, weights))!;
+
+  let earlyResale: DomainCandidate | undefined;
+  if (intent === "domain_investment") {
+    earlyResale = pickUnique((a, b) => b.signals.resale - a.signals.resale, false);
+  }
+
+  const brand = pickUnique((a, b) => b.signals.brand - a.signals.brand)!;
+  const seo = pickUnique((a, b) => b.signals.search - a.signals.search)!;
+  const ai = pickUnique((a, b) => b.signals.ai - a.signals.ai)!;
+  const risk = pickUnique((a, b) => (a.riskScore ?? 50) - (b.riskScore ?? 50))!;
+  const value = pickUnique((a, b) => (b.valueScore ?? 0) - (a.valueScore ?? 0))!;
+
+  const topResaleScore = Math.max(...enriched.map((c) => c.signals.resale));
+  const showResale =
+    intent === "domain_investment" || (topResaleScore >= 75 && enriched.length >= 7);
+
+  const stack: DecisionStack = { overall, brand, seo, ai, value, risk };
+  if (showResale) {
+    const resale = earlyResale ?? pickUnique((a, b) => b.signals.resale - a.signals.resale, false);
+    if (resale) stack.resale = resale;
+  }
+
+  return stack;
+}
+
 export function scoreDomain(
   domain: string,
   query: string,
@@ -316,14 +394,6 @@ export function scoreDomain(
     badges,
     valueScore: computeValueScore(signals, price),
   };
-}
-
-export function pickDecisionStack(candidates: DomainCandidate[]) {
-  if (candidates.length === 0) throw new Error("No candidates to rank");
-  const byBrand = [...candidates].sort((a, b) => b.signals.brand - a.signals.brand)[0];
-  const bySeo = [...candidates].sort((a, b) => b.signals.search - a.signals.search)[0];
-  const byAi = [...candidates].sort((a, b) => b.signals.ai - a.signals.ai)[0];
-  return { brand: byBrand, seo: bySeo, ai: byAi };
 }
 
 export function sortByOptimizeMode(

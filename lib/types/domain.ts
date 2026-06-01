@@ -1,3 +1,5 @@
+import type { GenerationPass, NamingLane } from "@/lib/types/naming";
+
 export type SignalScores = {
   brand: number;
   marketing: number;
@@ -37,6 +39,7 @@ export type AvailabilityStatus =
   | "unknown"
   | "api_error";
 
+
 export type DomainCandidate = {
   domain: string;
   price: number;
@@ -49,6 +52,20 @@ export type DomainCandidate = {
   valueScore?: number;
   riskScore?: number;
   ambiguityRisk?: number;
+  namingLane?: NamingLane;
+  generationPass?: GenerationPass;
+  seedDomain?: string;
+};
+
+/** Buyable-only decision stack (extended slots optional until Phase 4). */
+export type DecisionStack = {
+  overall?: DomainCandidate;
+  brand: DomainCandidate;
+  seo: DomainCandidate;
+  ai: DomainCandidate;
+  value?: DomainCandidate;
+  risk?: DomainCandidate;
+  resale?: DomainCandidate;
 };
 
 export type OptimizeMode =
@@ -127,13 +144,10 @@ export type AnalyzeDataSource = "marketplace" | "registration";
 export type AnalyzeResponse = {
   query: string;
   results: DomainCandidate[];
-  decisionStack: {
-    brand: DomainCandidate;
-    seo: DomainCandidate;
-    ai: DomainCandidate;
-  } | null;
+  decisionStack: DecisionStack | null;
   dataSource: AnalyzeDataSource;
   dataSourceNote?: string;
+  generationMeta?: import("@/lib/intelligence/regeneration").GenerationMeta;
 };
 
 export type CompareResponse = {

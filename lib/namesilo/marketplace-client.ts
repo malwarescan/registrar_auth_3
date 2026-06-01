@@ -1,6 +1,6 @@
 import type { DomainBrief } from "@/lib/types/domain-brief";
 import type { AnalyzeFilters, DomainCandidate } from "@/lib/types/domain";
-import { discoverDomainsFromBrief } from "@/lib/intelligence/discover-domains";
+import { discoverDomainsFromBrief, type GenerationMeta } from "@/lib/intelligence/discover-domains";
 import { buildAnalysisQuery, deriveWeightsFromBrief } from "@/lib/intelligence/brief-to-weights";
 import { compositeScore, scoreDomain } from "@/lib/intelligence/score-domain";
 import { resolveBuyingIntent } from "@/lib/types/domain-brief";
@@ -41,12 +41,13 @@ export async function searchMarketplace(
   dataSource: "marketplace" | "registration";
   dataSourceNote: string;
   apiConfigured: boolean;
+  generationMeta?: GenerationMeta;
 }> {
   const query = buildAnalysisQuery(brief);
   const intent = resolveBuyingIntent(brief);
   const weights = deriveWeightsFromBrief(brief);
 
-  const [{ candidates: registrationCandidates, apiConfigured }, auctionListings] =
+  const [{ candidates: registrationCandidates, apiConfigured, generationMeta }, auctionListings] =
     await Promise.all([
       discoverDomainsFromBrief(brief, filters),
       searchAuctionListings(query, { pageSize: 20, maxPrice: filters?.maxPrice }),
@@ -56,7 +57,7 @@ export async function searchMarketplace(
     scoreDomain(listing.domain, query, listing.price, "marketplace", true, { intent })
   );
 
-  let candidates = applyFilters(
+  const candidates = applyFilters(
     mergeCandidates(registrationCandidates, marketplaceCandidates),
     filters
   );
@@ -88,6 +89,7 @@ export async function searchMarketplace(
     dataSource: hasMarketplace ? "marketplace" : "registration",
     dataSourceNote,
     apiConfigured,
+    generationMeta,
   };
 }
 

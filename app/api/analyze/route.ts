@@ -8,6 +8,7 @@ import {
   deriveWeightsFromBrief,
 } from "@/lib/intelligence/brief-to-weights";
 import { mergeBrief } from "@/lib/search/brief-config";
+import { resolveBuyingIntent } from "@/lib/types/domain-brief";
 import {
   isBenchmarkOnly,
   isRecommendationEligible,
@@ -33,10 +34,8 @@ export async function POST(request: Request) {
     const weights = body.weights ?? deriveWeightsFromBrief(brief);
     const filters = body.filters ?? briefToFilters(brief);
 
-    const { candidates, dataSource, dataSourceNote, apiConfigured } = await searchMarketplace(
-      brief,
-      filters
-    );
+    const { candidates, dataSource, dataSourceNote, apiConfigured, generationMeta } =
+      await searchMarketplace(brief, filters);
 
     if (candidates.length === 0) {
       return NextResponse.json({
@@ -73,7 +72,9 @@ export async function POST(request: Request) {
     });
 
     const sorted = merged;
-    const decisionStack = rankPool.length > 0 ? pickDecisionStack(rankPool) : null;
+    const intent = resolveBuyingIntent(brief);
+    const decisionStack =
+      rankPool.length > 0 ? pickDecisionStack(rankPool, { weights, intent }) : null;
 
     const response: AnalyzeResponse & { apiConfigured?: boolean; brief?: typeof brief } = {
       query,
@@ -83,6 +84,7 @@ export async function POST(request: Request) {
       dataSourceNote,
       apiConfigured,
       brief,
+      ...(generationMeta ? { generationMeta } : {}),
     };
 
     return NextResponse.json(response);

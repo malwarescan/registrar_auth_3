@@ -621,6 +621,14 @@ function shouldBlendLocalStrategy(criteria: NamingCriteria): boolean {
   );
 }
 
+function shouldAllowSeoBackfill(criteria: NamingCriteria): boolean {
+  return (
+    criteria.intent === "seo_content" ||
+    criteria.constraints.preferExactMatch ||
+    criteria.constraints.preferKeywordSlug
+  );
+}
+
 /** Generate domain labels using the intent-specialized strategy for this brief. */
 export function generateLabelsForIntent(criteria: NamingCriteria): string[] {
   let labels: string[];
@@ -635,11 +643,11 @@ export function generateLabelsForIntent(criteria: NamingCriteria): string[] {
     labels = STRATEGIES[criteria.intent](criteria);
   }
 
-  if (labels.length < 8 && !criteria.constraints.preferExactMatch && criteria.intent !== "seo_content") {
-    const secondary = criteria.hasSubject
-      ? generateSubjectAnchoredBrand(criteria)
-      : generateSeoContent(criteria).slice(0, 8);
+  if (labels.length < 8 && shouldAllowSeoBackfill(criteria)) {
+    const secondary = generateSeoContent(criteria).slice(0, 8);
     labels = [...new Set([...labels, ...secondary])];
+  } else if (labels.length < 8 && criteria.hasSubject) {
+    labels = [...new Set([...labels, ...generateSubjectAnchoredBrand(criteria)])];
   }
 
   const seen = new Set<string>();

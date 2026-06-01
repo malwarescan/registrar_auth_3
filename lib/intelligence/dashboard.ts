@@ -11,7 +11,7 @@ import type {
   SignalWinner,
 } from "@/lib/types/domain";
 import { OPTIMIZE_PRESETS } from "@/lib/types/domain";
-import { compositeScore, computeValueScore, sortByOptimizeMode } from "./score-domain";
+import { compositeScore, computeValueScore, computeRiskScore, sortByOptimizeMode } from "./score-domain";
 import { parseDomain } from "./parse-domain";
 import { isBenchmarkOnly, isRecommendationEligible } from "@/lib/domains/availability";
 
@@ -19,14 +19,7 @@ function clamp(n: number, min = 0, max = 100): number {
   return Math.max(min, Math.min(max, Math.round(n)));
 }
 
-export function computeRiskScore(signals: SignalScores, domain: string): number {
-  const parsed = parseDomain(domain);
-  let risk = 100 - signals.trust;
-  if (parsed.hasHyphen) risk += 8;
-  if (parsed.length > 14) risk += 6;
-  if (parsed.tld !== "com") risk += 5;
-  return clamp(risk);
-}
+export { computeRiskScore } from "./score-domain";
 
 export function computeAmbiguityRisk(signals: SignalScores): number {
   return clamp(100 - signals.ai);

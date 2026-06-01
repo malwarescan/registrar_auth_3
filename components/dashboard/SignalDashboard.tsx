@@ -9,6 +9,7 @@ import { SignalControls } from "@/components/dashboard/SignalControls";
 import { RankedDomainCard } from "@/components/dashboard/RankedDomainCard";
 import { PinnedDomainCard } from "@/components/dashboard/PinnedDomainCard";
 import { BenchmarkComparison } from "@/components/dashboard/BenchmarkComparison";
+import { DecisionStack } from "@/components/search/DecisionStack";
 import type { AnalyzeResponse, OptimizeMode, SignalWeights } from "@/lib/types/domain";
 import { DEFAULT_SIGNAL_WEIGHTS, OPTIMIZE_PRESETS } from "@/lib/types/domain";
 import { buildDashboardView } from "@/lib/intelligence/dashboard";
@@ -212,6 +213,24 @@ export function SignalDashboard({
             {data.dataSourceNote}
           </p>
         )}
+        {data.generationMeta?.regenerationTriggered && (
+          <p className="mt-2 rounded-md border border-[var(--secondary)]/30 bg-[var(--surface-container-low)] px-3 py-2 text-xs leading-relaxed text-[var(--on-surface)]">
+            Availability-aware refinement ran because the strongest first-pass names were taken.
+            Checked {data.generationMeta.pass2Checked} additional names and found{" "}
+            {Math.max(
+              0,
+              data.generationMeta.buyableCountAfterRegeneration -
+                data.generationMeta.buyableCountBeforeRegeneration
+            )}{" "}
+            more buyable option
+            {data.generationMeta.buyableCountAfterRegeneration -
+              data.generationMeta.buyableCountBeforeRegeneration ===
+            1
+              ? ""
+              : "s"}
+            .
+          </p>
+        )}
         <div className="mt-4 flex gap-1 border-b border-[var(--outline-variant)]">
           {RESULT_TABS.map((tab) => (
             <button
@@ -230,6 +249,19 @@ export function SignalDashboard({
           ))}
         </div>
       </div>
+
+      {data.decisionStack && hasBuyableRecommendations && (
+        <DecisionStack
+          stack={data.decisionStack}
+          onCompare={(d) =>
+            goCompare(
+              [d, displayPinned?.domain ?? dashboard.rankedResults[0]?.domain].filter(
+                Boolean
+              ) as string[]
+            )
+          }
+        />
+      )}
 
       {activeTab === "details" && (
         <section className="space-y-5">

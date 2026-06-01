@@ -17,6 +17,7 @@ import {
   isBenchmarkOnly,
   shouldShowPrice,
 } from "@/lib/domains/availability";
+import { formatNamingLane } from "@/lib/ui/naming-lane-labels";
 
 type RankedDomainCardProps = {
   candidate: DomainCandidate;
@@ -98,8 +99,21 @@ export function RankedDomainCard({
             {getAvailabilityLabel(candidate.availabilityStatus)}
             {benchmarkOnly && " — benchmark only"}
           </Badge>
+          {candidate.namingLane && (
+            <Badge variant="default" className="ml-1.5 mt-1 text-[10px] opacity-80">
+              {formatNamingLane(candidate.namingLane)}
+            </Badge>
+          )}
         </div>
       </div>
+
+      {(candidate.generationPass === 2 || candidate.seedDomain) && (
+        <p className="text-[10px] leading-relaxed text-[var(--on-surface-variant)]">
+          {candidate.generationPass === 2 && "Availability-aware refinement"}
+          {candidate.generationPass === 2 && candidate.seedDomain && " · "}
+          {candidate.seedDomain && `Inspired by ${candidate.seedDomain}`}
+        </p>
+      )}
 
       <div className="flex flex-wrap gap-1.5">
         {chips.map((c) => (
