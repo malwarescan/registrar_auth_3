@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Heart, ArrowLeftRight, HelpCircle, TrendingUp } from "lucide-react";
+import { Search, Heart, ArrowLeftRight, HelpCircle } from "lucide-react";
+import { BrandLogo } from "@/components/layout/BrandLogo";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -17,13 +18,10 @@ export function SideNav() {
 
   return (
     <aside className="fixed inset-y-0 left-0 z-50 hidden w-[var(--sidebar-width)] flex-col border-r border-[var(--outline-variant)] bg-white lg:flex">
-      <div className="flex items-center gap-2 border-b border-[var(--outline-variant)] px-5 py-4">
-        <TrendingUp className="h-6 w-6 text-[var(--theme-primary)]" strokeWidth={2.5} />
-        <span className="text-sm font-bold leading-tight text-[var(--theme-primary)]">
-          NameSilo
-          <br />
-          Intelligence
-        </span>
+      <div className="flex min-h-[112px] items-center justify-center border-b border-[var(--outline-variant)] px-6 py-6">
+        <Link href="/" className="block">
+          <BrandLogo className="h-10 w-10" priority />
+        </Link>
       </div>
       <nav className="flex flex-1 flex-col gap-1 p-3">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {

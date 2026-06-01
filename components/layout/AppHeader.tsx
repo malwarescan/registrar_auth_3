@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Search, TrendingUp } from "lucide-react";
+import { Search } from "lucide-react";
+import { BrandLogo } from "@/components/layout/BrandLogo";
 
 type AppHeaderProps = {
   title?: string;
@@ -23,12 +24,15 @@ export function AppHeader({
               ←
             </Link>
           )}
-          {showLogo && (
-            <TrendingUp className="h-5 w-5 text-[var(--theme-primary)] lg:hidden" strokeWidth={2.5} />
+          {showLogo ? (
+            <Link href="/" className="lg:hidden">
+              <BrandLogo className="h-7 w-7" />
+            </Link>
+          ) : (
+            <h1 className="text-base font-bold text-[var(--theme-primary)] md:text-lg lg:hidden">
+              {title}
+            </h1>
           )}
-          <h1 className="text-base font-bold text-[var(--theme-primary)] md:text-lg lg:hidden">
-            {title}
-          </h1>
           {backHref && (
             <Link
               href={backHref}

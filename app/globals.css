@@ -12,3 +12,48 @@ body {
   color: var(--on-surface);
   font-family: var(--font-inter), Inter, system-ui, sans-serif;
 }
+
+@keyframes signalPulse {
+  0% {
+    opacity: 0.5;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  70% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.42);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.58);
+  }
+}
+
+.signal-pulse-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--secondary) 75%, transparent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--secondary) 38%, transparent);
+  transform: translate(-50%, -50%);
+  transform-origin: center center;
+  animation: signalPulse 3.8s ease-out infinite;
+  pointer-events: none;
+}
+
+.signal-pulse-ring-inner {
+  width: calc(100% + 28px);
+  height: calc(100% + 28px);
+  border-width: 2px;
+}
+
+.signal-pulse-ring-outer {
+  width: calc(100% + 44px);
+  height: calc(100% + 44px);
+  border-width: 1.5px;
+}
+
+.signal-pulse-ring-delay {
+  animation-delay: 1.7s;
+}
