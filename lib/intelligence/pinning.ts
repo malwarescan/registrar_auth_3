@@ -2,13 +2,15 @@ import type { BenchmarkDelta, PinRecommendation } from "@/lib/types/domain-brief
 import type { DomainCandidate, DomainRankings, SignalWeights, SignalWinner } from "@/lib/types/domain";
 import { compositeScore } from "./score-domain";
 import { parseDomain } from "./parse-domain";
+import { isRecommendationEligible } from "@/lib/domains/availability";
 
 export function getSystemPinned(
   candidates: DomainCandidate[],
   weights: SignalWeights
 ): DomainCandidate | null {
-  if (candidates.length === 0) return null;
-  return [...candidates].sort((a, b) => compositeScore(b, weights) - compositeScore(a, weights))[0];
+  const pool = candidates.filter((c) => isRecommendationEligible(c));
+  if (pool.length === 0) return null;
+  return [...pool].sort((a, b) => compositeScore(b, weights) - compositeScore(a, weights))[0];
 }
 
 export function buildPinRecommendation(

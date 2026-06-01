@@ -1,26 +1,27 @@
 import type { DomainBrief } from "@/lib/types/domain-brief";
+import { resolveBuyingIntent } from "@/lib/types/domain-brief";
 import type { DomainCandidate, SignalWeights } from "@/lib/types/domain";
 import { parseDomain } from "./parse-domain";
+import { INTENT_WEIGHT_PRESETS } from "@/lib/search/brief-config";
+import { canPurchaseDomain } from "@/lib/domains/availability";
 
 function boost(weights: SignalWeights, key: keyof SignalWeights, amount: number): SignalWeights {
   return { ...weights, [key]: weights[key] + amount };
 }
 
-/** Derive signal weights from the full domain brief context. */
+/** Derive signal weights from buying intent + brief context. */
 export function deriveWeightsFromBrief(brief: DomainBrief): SignalWeights {
-  let w = { ...brief.priorityWeights };
+  const intent = resolveBuyingIntent(brief);
+  let w = intent
+    ? { ...INTENT_WEIGHT_PRESETS[intent], ...brief.priorityWeights }
+    : { ...brief.priorityWeights };
 
-  const goalBoosts: Record<string, Partial<SignalWeights>> = {
-    start_business: { brand: 0.5, trust: 0.3, value: 0.2 },
-    upgrade_domain: { brand: 0.8, trust: 0.5, seo: 0.3 },
-    local_service: { trust: 1, seo: 0.8, brand: 0.3 },
-    saas_startup: { brand: 1, ai: 0.8, trust: 0.4 },
-    domain_investing: { resale: 1.5, value: 1, trust: 0.3 },
-    seo_content: { seo: 1.5, ai: 0.5, brand: 0.2 },
-  };
-  if (brief.searchGoal && goalBoosts[brief.searchGoal]) {
-    for (const [k, v] of Object.entries(goalBoosts[brief.searchGoal]!)) {
-      w = boost(w, k as keyof SignalWeights, v!);
+  // Merge user slider adjustments on top of intent preset
+  if (intent) {
+    for (const key of Object.keys(brief.priorityWeights) as (keyof SignalWeights)[]) {
+      if (brief.priorityWeights[key] !== 1) {
+        w[key] = (INTENT_WEIGHT_PRESETS[intent][key] + brief.priorityWeights[key]) / 2;
+      }
     }
   }
 
@@ -48,7 +49,7 @@ export function deriveWeightsFromBrief(brief: DomainBrief): SignalWeights {
     if (t.includes(".com") || t.includes("spell") || t.includes("phone")) w = boost(w, "trust", 0.3);
   }
 
-  if (brief.brandTones.some((t) => ["Premium", "Luxury", "Corporate"].includes(t))) {
+  if (brief.brandTones.some((t) => ["Premium", "Luxury", "Corporate", "Trustworthy"].includes(t))) {
     w = boost(w, "brand", 0.5);
     w = boost(w, "trust", 0.3);
   }
@@ -57,24 +58,26 @@ export function deriveWeightsFromBrief(brief: DomainBrief): SignalWeights {
 
   for (const req of brief.requirements) {
     if (req.includes("$500")) w = boost(w, "value", 0.6);
-    if (req.includes("$2") || req.includes("$5")) w = boost(w, "value", 0.3);
+    if (req.includes("$2") || req.includes("$5") || req.includes("$10")) w = boost(w, "value", 0.3);
     if (req === "local SEO") w = boost(w, "seo", 0.4);
-    if (req === "exact match") w = boost(w, "seo", 0.5);
-    if (req === "brandable") w = boost(w, "brand", 0.5);
+    if (req === "exact match") w = boost(w, "seo", 0.8);
+    if (req === "brandable") w = boost(w, "brand", 0.6);
+    if (req === "AI-visible") w = boost(w, "ai", 0.6);
   }
 
   return w;
 }
 
-/** Build the analysis query from brief fields. */
+/** Build the analysis query from brief fields (scoring context + NameSilo lookups). */
 export function buildAnalysisQuery(brief: DomainBrief): string {
   const parts = [brief.naming.trim()];
   if (brief.productService.trim()) parts.push(brief.productService.trim());
   if (brief.industry.trim()) parts.push(brief.industry.trim());
   if (brief.location.trim()) parts.push(brief.location.trim());
   if (brief.audience.trim()) parts.push(`for ${brief.audience.trim()}`);
-  if (brief.currentDomain.trim() && brief.searchMode === "current_domain") {
-    parts.push(`better domain than ${brief.currentDomain.trim()}`);
+  if (brief.personalName.trim()) parts.unshift(brief.personalName.trim());
+  if (brief.currentDomain.trim() && resolveBuyingIntent(brief) === "premium_upgrade") {
+    parts.push(`upgrade from ${brief.currentDomain.trim()}`);
   }
   return parts.filter(Boolean).join(" ") || brief.naming.trim();
 }
@@ -86,7 +89,7 @@ export function briefToFilters(brief: DomainBrief) {
   };
 }
 
-/** Client-side filter/boost based on requirement chips. */
+/** Client-side filter based on requirement chips. */
 export function applyBriefRequirements(
   candidates: DomainCandidate[],
   brief: DomainBrief
@@ -106,8 +109,8 @@ export function applyBriefRequirements(
   if (brief.requirements.includes("easy to say")) {
     filtered = filtered.filter((c) => parseDomain(c.domain).length <= 14);
   }
-  if (brief.buyNowOnly) {
-    filtered = filtered.filter((c) => c.available);
+  if (brief.buyNowOnly || brief.requirements.includes("buy now only")) {
+    filtered = filtered.filter((c) => canPurchaseDomain(c));
   }
   if (!brief.premiumAllowed) {
     filtered = filtered.filter((c) => c.price <= brief.maxPrice);

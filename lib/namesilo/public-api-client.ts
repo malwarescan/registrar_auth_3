@@ -18,7 +18,7 @@ type NameSiloReply = {
   [key: string]: unknown;
 };
 
-async function namesiloRequest<T extends NameSiloReply>(
+export async function namesiloRequest<T extends NameSiloReply>(
   operation: string,
   params: Record<string, string> = {}
 ): Promise<T | null> {
@@ -155,6 +155,84 @@ export async function getRegistrationPrice(tld: string): Promise<number | null> 
   const prices = await getTldPrices();
   const key = tld.replace(".", "");
   return prices[key] ?? null;
+}
+
+type AuctionListing = {
+  domain: string;
+  price: number;
+  buyNow?: number;
+};
+
+function parseAuctionPrice(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const n = parseFloat(value.replace(/[^0-9.]/g, ""));
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+function extractAuctionDomain(entry: unknown): string | null {
+  if (typeof entry === "string") return entry.trim().toLowerCase() || null;
+  if (!entry || typeof entry !== "object") return null;
+  const obj = entry as Record<string, unknown>;
+  for (const key of ["domain", "domainName", "name"]) {
+    if (typeof obj[key] === "string") return (obj[key] as string).trim().toLowerCase();
+  }
+  return extractDomainName(entry);
+}
+
+function collectAuctionEntries(reply: NameSiloReply | null): unknown[] {
+  if (!reply || reply.code !== "300") return [];
+  for (const key of ["auctions", "auction", "domains", "domain"]) {
+    const section = reply[key];
+    if (!section) continue;
+    if (Array.isArray(section)) return section;
+    if (typeof section === "object") {
+      const obj = section as Record<string, unknown>;
+      const nested = obj.auction ?? obj.domain;
+      if (Array.isArray(nested)) return nested;
+      if (nested !== undefined) return [nested];
+      return Object.values(obj);
+    }
+  }
+  return [];
+}
+
+/** Search NameSilo marketplace auctions via the same API (listAuctions). */
+export async function searchAuctionListings(
+  query: string,
+  options?: { pageSize?: number; maxPrice?: number }
+): Promise<AuctionListing[]> {
+  const keyword = query.trim().split(/\s+/)[0];
+  if (!keyword || keyword.length < 3) return [];
+
+  const reply = await namesiloRequest<NameSiloReply>("listAuctions", {
+    domainName: keyword,
+    page: "1",
+    pageSize: String(options?.pageSize ?? 20),
+  });
+
+  if (!reply || reply.code === "107") return [];
+
+  const listings: AuctionListing[] = [];
+  for (const entry of collectAuctionEntries(reply)) {
+    const domain = extractAuctionDomain(entry);
+    if (!domain || !domain.includes(".")) continue;
+
+    const obj = typeof entry === "object" && entry ? (entry as Record<string, unknown>) : {};
+    const price =
+      parseAuctionPrice(obj.buyNow) ??
+      parseAuctionPrice(obj.currentBid) ??
+      parseAuctionPrice(obj.price) ??
+      parseAuctionPrice(obj.openingBid) ??
+      99;
+
+    if (options?.maxPrice && price > options.maxPrice) continue;
+    listings.push({ domain, price, buyNow: parseAuctionPrice(obj.buyNow) ?? undefined });
+  }
+
+  return listings;
 }
 
 export { getBuyUrl } from "./urls";

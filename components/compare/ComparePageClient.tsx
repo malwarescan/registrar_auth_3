@@ -11,6 +11,7 @@ import type { CompareResponse } from "@/lib/types/domain";
 import { useShortlistContext } from "@/lib/shortlist/shortlist-context";
 import { slugToDomain } from "@/lib/shortlist/use-shortlist";
 import { getBuyUrl } from "@/lib/namesilo/urls";
+import { canPurchaseDomain } from "@/lib/domains/availability";
 
 export function ComparePageClient() {
   const searchParams = useSearchParams();
@@ -80,13 +81,19 @@ export function ComparePageClient() {
             <DecisionSummary decisions={data.decisions} />
             <div className="flex flex-col gap-2 pt-2 sm:flex-row lg:max-w-md">
               {selected && (
-                <a
-                  href={getBuyUrl(selected.domain, selected.priceType)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button className="w-full">Buy Selected</Button>
-                </a>
+                canPurchaseDomain(selected) ? (
+                  <a
+                    href={getBuyUrl(selected.domain, selected.priceType)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Button className="w-full">Buy Selected</Button>
+                  </a>
+                ) : (
+                  <Button className="w-full" variant="outline" disabled>
+                    Not purchasable
+                  </Button>
+                )
               )}
               <Button
                 variant="outline"

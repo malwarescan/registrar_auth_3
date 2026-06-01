@@ -1,52 +1,123 @@
-import type { DomainAnalysis, DomainCandidate, SignalScores, OptimizeMode, SignalWeights } from "@/lib/types/domain";
+import type { DomainAnalysis, DomainCandidate, SignalScores, OptimizeMode, SignalWeights, AvailabilityStatus } from "@/lib/types/domain";
 import { OPTIMIZE_PRESETS } from "@/lib/types/domain";
-import { analyzeQueryMatch, getTldTrust, normalizeQueryTokens, parseDomain } from "./parse-domain";
+import type { BuyingIntent } from "@/lib/types/domain-brief";
+import { analyzeQueryMatch, getTldTrust, analyzeQueryContext, parseDomain, getMeaningfulScoringTokens } from "./parse-domain";
+
+export type ScoringContext = {
+  intent?: BuyingIntent | null;
+  brandablePreferred?: boolean;
+};
 
 function clamp(n: number, min = 0, max = 100): number {
   return Math.max(min, Math.min(max, Math.round(n)));
 }
 
-/**
- * Unified signal model — all scores derive from the same query-match analysis:
- *
- * - coverage:   % of query tokens found in the domain label
- * - orderScore: tokens appear in query order (better for SEO exact-match)
- * - clarity:    brevity + word boundaries (hyphens help)
- *
- * Brand  = clarity-first (memorability), with moderate relevance boost
- * SEO    = coverage + order, penalized by length/redundancy
- * AI     = clarity + coverage balance (entities need parseable structure)
- * Marketing = average of brand + SEO
- * Trust  = TLD authority
- * Resale = TLD + length
- * Value  = weighted signal average minus price penalty
- * Overall = weighted composite of all above (see compositeScore)
- */
+function isBrandableLabel(label: string): boolean {
+  const normalized = label.replace(/-/g, "");
+  // Two-word compound without being a long keyword join
+  const hasCompound = /[a-z][A-Z]/.test(label) || (normalized.length >= 6 && normalized.length <= 14);
+  const notLongJoin = normalized.length <= 16;
+  return hasCompound && notLongJoin;
+}
+
+function isLocalKeywordSlug(labelNorm: string, service: string, city: string): boolean {
+  if (!service || !city) return false;
+  return labelNorm === service + city || labelNorm === city + service;
+}
+
+function isBusinessStyleLocalLabel(label: string): boolean {
+  return (
+    /[a-z][A-Z].*[A-Z]/.test(label) ||
+    /(co|pros|group|team|hq|slice|pie|oven|works|house)$/i.test(label.replace(/-/g, ""))
+  );
+}
+
 function computeSignals(
   parsed: ReturnType<typeof parseDomain>,
-  queryTokens: string[]
+  queryTokens: string[],
+  query: string,
+  ctx?: ScoringContext
 ): SignalScores {
-  const match = analyzeQueryMatch(parsed.label, queryTokens);
-  const penalty = match.redundancyPenalty + Math.max(0, parsed.length - 14) * 2;
+  const context = analyzeQueryContext(query);
+  const meaningfulTokens = getMeaningfulScoringTokens(context);
+  const match = analyzeQueryMatch(parsed.label, meaningfulTokens.length ? meaningfulTokens : queryTokens, context);
+  let penalty =
+    match.redundancyPenalty + match.localPenalty + Math.max(0, parsed.length - 14) * 2;
+
+  const brandablePreferred =
+    ctx?.brandablePreferred ??
+    (ctx?.intent === "business_brand" ||
+      ctx?.intent === "saas_app" ||
+      ctx?.intent === "ecommerce_store");
+  const literalJoin = queryTokens.join("").toLowerCase();
+  const labelNorm = parsed.label.replace(/-/g, "").toLowerCase();
+
+  let brandBonus = 0;
+  let seoPenalty = 0;
+
+  if (brandablePreferred) {
+    if (isBrandableLabel(parsed.label)) brandBonus += 18;
+    if (literalJoin.length > 5 && labelNorm.includes(literalJoin)) seoPenalty += 25;
+    if (match.coverage > 85 && labelNorm === literalJoin) seoPenalty += 20;
+    if (parsed.hasHyphen && match.coverage > 70) seoPenalty += 8;
+  } else if (ctx?.intent === "seo_content") {
+    if (match.coverage >= 70) brandBonus += 10;
+  }
+
+  if (ctx?.intent === "local_service" && context.businessTokens.length > 0) {
+    const primaryService =
+      context.businessTokens.find((t) => !["parlour", "parlor", "restaurant"].includes(t)) ??
+      context.businessTokens[0];
+    const city = context.locationTokens.find((t) => t.length > 2) ?? context.locationTokens[0] ?? "";
+    const hasBusiness = meaningfulTokens.some((t) => labelNorm.includes(t)) || labelNorm.includes(primaryService);
+    const hasLocation = context.locationTokens.some((t) => labelNorm.includes(t.replace(/-/g, "")));
+    const isBareGeo = context.locationTokens.some((t) => labelNorm === t.replace(/-/g, ""));
+    const isRawSlug = isLocalKeywordSlug(labelNorm, primaryService, city);
+
+    if (isBareGeo && !hasBusiness) {
+      penalty += 50;
+      seoPenalty += 30;
+    } else if (isBusinessStyleLocalLabel(parsed.label) && hasLocation) {
+      brandBonus += 25;
+      seoPenalty -= 5;
+    } else if (hasBusiness && hasLocation && !isRawSlug) {
+      brandBonus += 22;
+    } else if (hasBusiness && hasLocation) {
+      brandBonus += 8;
+      seoPenalty += 12;
+      penalty += 8;
+    } else if (hasBusiness) {
+      brandBonus += 8;
+    } else if (isRawSlug) {
+      brandBonus -= 15;
+      seoPenalty += 5;
+      penalty += 10;
+    }
+  }
 
   const brand = clamp(
-    match.clarity * 0.65 +
-      match.coverage * 0.2 +
-      (parsed.hasHyphen ? 5 : 0) -
+    match.clarity * 0.55 +
+      match.coverage * 0.1 +
+      match.locationCoverage * 0.15 +
+      brandBonus +
+      (parsed.hasHyphen && !brandablePreferred ? 5 : 0) -
       penalty * 0.4
   );
 
   const search = clamp(
-    match.coverage * 0.55 +
-      match.orderScore * 0.25 +
-      match.clarity * 0.15 +
+    match.coverage * 0.4 +
+      match.locationCoverage * 0.25 +
+      match.orderScore * 0.2 +
+      match.clarity * 0.1 +
       (parsed.tld === "com" ? 5 : parsed.tld === "net" ? 2 : 0) -
-      penalty * 0.5
+      penalty * 0.5 -
+      seoPenalty
   );
 
   const ai = clamp(
-    match.clarity * 0.45 +
-      match.coverage * 0.35 +
+    match.clarity * 0.4 +
+      match.coverage * 0.25 +
+      match.locationCoverage * 0.2 +
       match.orderScore * 0.1 +
       (parsed.hasHyphen ? 8 : 0) -
       penalty * 0.35
@@ -87,13 +158,35 @@ function buildAnalysis(
   parsed: ReturnType<typeof parseDomain>,
   signals: SignalScores,
   query: string,
-  match: ReturnType<typeof analyzeQueryMatch>
+  match: ReturnType<typeof analyzeQueryMatch>,
+  context: ReturnType<typeof analyzeQueryContext>,
+  intent?: BuyingIntent | null
 ): DomainAnalysis {
   const strengths: string[] = [];
   const watchOuts: string[] = [];
+  const meaningfulTokens = getMeaningfulScoringTokens(context);
+  const labelNorm = parsed.label.toLowerCase().replace(/-/g, "");
+  const primaryService = meaningfulTokens[0] ?? "";
+  const primaryCity = meaningfulTokens.find((t) => context.locationTokens.includes(t)) ?? "";
+  const hasCoreLocalFit =
+    intent === "local_service" &&
+    primaryService &&
+    primaryCity &&
+    labelNorm.includes(primaryService) &&
+    labelNorm.includes(primaryCity);
 
-  if (signals.search >= 75) {
+  if (hasCoreLocalFit) {
+    strengths.push(`Clear ${primaryService} + ${primaryCity} fit for a local business customers can remember.`);
+  } else if (signals.search >= 75) {
     strengths.push(`Strong keyword coverage for "${query}" (${Math.round(match.coverage)}% token match).`);
+  }
+  if (context.isLocalIntent && match.locationCoverage >= 80) {
+    strengths.push(`Includes local place (${context.locationTokens.join(", ")}) for local search fit.`);
+  }
+  if (context.isLocalIntent && match.locationCoverage < 50) {
+    watchOuts.push(
+      `No location (${context.locationTokens.join(", ")}) in the name — weaker for local search.`
+    );
   }
   if (signals.brand >= 70) {
     strengths.push("Short, memorable label with good verbal recall.");
@@ -108,8 +201,20 @@ function buildAnalysis(
     strengths.push(`Moderate fit for "${query}" — review shorter variants.`);
   }
 
-  if (match.coverage < 60) {
+  if (match.coverage < 60 && !hasCoreLocalFit) {
     watchOuts.push(`Only ${Math.round(match.coverage)}% of query keywords appear in this domain.`);
+  }
+  if (
+    intent === "local_service" &&
+    isLocalKeywordSlug(labelNorm, primaryService, primaryCity) &&
+    !isBusinessStyleLocalLabel(parsed.label)
+  ) {
+    watchOuts.push("Reads like an SEO keyword slug — weaker as a storefront brand customers trust.");
+  }
+  if (context.isLocalIntent && match.locationCoverage < 50) {
+    watchOuts.push(
+      `No local place name (${context.locationTokens.join(", ")}) — weak fit for a location-based business.`
+    );
   }
   if (parsed.length > 14) {
     watchOuts.push(`Label is ${parsed.length} characters — long domains reduce recall.`);
@@ -145,14 +250,25 @@ function buildAnalysis(
   };
 }
 
-function buildBadges(signals: SignalScores, price: number, priceType: string): string[] {
+function buildBadges(
+  signals: SignalScores,
+  price: number,
+  status: AvailabilityStatus
+): string[] {
   const badges: string[] = [];
   const valueScore = computeValueScore(signals, price);
+  if (status === "available") badges.push("Available now");
+  else if (status === "premium_available") badges.push("Premium listing");
+  else if (status === "marketplace_available") badges.push("Marketplace listing");
+  else if (status === "taken") badges.push("Taken");
+  else if (status === "benchmark_only") badges.push("Benchmark only");
+  else if (status === "idea_only") badges.push("Availability not checked");
+  else if (status === "unknown") badges.push("Availability unknown");
+  else badges.push("Availability check failed");
   if (valueScore >= 75) badges.push("Strong Price-to-Value");
   if (signals.search >= 80) badges.push("Strong SEO fit");
   if (signals.brand >= 75) badges.push("Strong brand fit");
   if (signals.ai >= 75) badges.push("Strong AI clarity");
-  if (priceType === "registration") badges.push("Available Now");
   return badges.slice(0, 3);
 }
 
@@ -167,20 +283,34 @@ export function scoreDomain(
   query: string,
   price: number,
   priceType: "registration" | "marketplace" = "marketplace",
-  available = true
+  available = true,
+  scoringContext?: ScoringContext
 ): DomainCandidate {
   const parsed = parseDomain(domain);
-  const queryTokens = normalizeQueryTokens(query);
-  const match = analyzeQueryMatch(parsed.label, queryTokens);
-  const signals = computeSignals(parsed, queryTokens);
-  const analysis = buildAnalysis(parsed, signals, query, match);
-  const badges = buildBadges(signals, price, priceType);
+  const context = analyzeQueryContext(query);
+  const queryTokens = [...context.businessTokens, ...context.locationTokens];
+  const meaningfulTokens = getMeaningfulScoringTokens(context);
+  const match = analyzeQueryMatch(
+    parsed.label,
+    meaningfulTokens.length ? meaningfulTokens : queryTokens,
+    context
+  );
+  const signals = computeSignals(parsed, meaningfulTokens.length ? meaningfulTokens : queryTokens, query, scoringContext);
+  const analysis = buildAnalysis(parsed, signals, query, match, context, scoringContext?.intent);
+  const status: AvailabilityStatus =
+    priceType === "marketplace" && available
+      ? "marketplace_available"
+      : available
+        ? "available"
+        : "taken";
+  const badges = buildBadges(signals, price, status);
 
   return {
     domain,
     price,
     priceType,
     available,
+    availabilityStatus: status,
     signals,
     analysis,
     badges,

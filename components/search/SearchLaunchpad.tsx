@@ -3,7 +3,6 @@
 import { EXAMPLE_BRIEFS } from "@/lib/search/brief-config";
 import type { DomainBrief } from "@/lib/types/domain-brief";
 import { Card } from "@/components/ui/Card";
-import { OutputPreviewGrid } from "@/components/search/OutputPreviewGrid";
 import { ExampleSignalMap } from "@/components/search/ExampleSignalMap";
 
 type SearchLaunchpadProps = {
@@ -13,7 +12,6 @@ type SearchLaunchpadProps = {
 export function SearchLaunchpad({ onExampleBrief }: SearchLaunchpadProps) {
   return (
     <div className="space-y-8">
-      <OutputPreviewGrid />
       <ExampleSignalMap />
 
       <section>

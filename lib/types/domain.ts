@@ -27,11 +27,22 @@ export type SignalEvidence = {
   risk: string;
 };
 
+export type AvailabilityStatus =
+  | "available"
+  | "premium_available"
+  | "marketplace_available"
+  | "taken"
+  | "benchmark_only"
+  | "idea_only"
+  | "unknown"
+  | "api_error";
+
 export type DomainCandidate = {
   domain: string;
   price: number;
   priceType: "registration" | "marketplace";
   available: boolean;
+  availabilityStatus: AvailabilityStatus;
   signals: SignalScores;
   analysis: DomainAnalysis;
   badges: string[];
@@ -105,9 +116,13 @@ export type AnalyzeFilters = {
 };
 
 export type AnalyzeRequest = {
-  query: string;
+  query?: string;
+  brief?: import("@/lib/types/domain-brief").DomainBrief;
   filters?: AnalyzeFilters;
+  weights?: SignalWeights;
 };
+
+export type AnalyzeDataSource = "marketplace" | "registration";
 
 export type AnalyzeResponse = {
   query: string;
@@ -117,6 +132,8 @@ export type AnalyzeResponse = {
     seo: DomainCandidate;
     ai: DomainCandidate;
   } | null;
+  dataSource: AnalyzeDataSource;
+  dataSourceNote?: string;
 };
 
 export type CompareResponse = {

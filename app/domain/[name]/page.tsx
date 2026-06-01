@@ -9,8 +9,13 @@ import { Button } from "@/components/ui/Button";
 import { getMarketplaceListing } from "@/lib/namesilo/marketplace-client";
 import { getBuyUrl } from "@/lib/namesilo/public-api-client";
 import { scoreDomain } from "@/lib/intelligence/score-domain";
-import { slugToDomain, domainToSlug } from "@/lib/shortlist/use-shortlist";
+import { slugToDomain, domainToSlug } from "@/lib/domains/slug";
 import { DomainReportActions } from "@/components/report/DomainReportActions";
+import {
+  canPurchaseDomain,
+  getAvailabilityLabel,
+  shouldShowPrice,
+} from "@/lib/domains/availability";
 
 type PageProps = {
   params: Promise<{ name: string }>;
@@ -20,7 +25,13 @@ type PageProps = {
 async function getDomainData(slug: string, query: string) {
   const domain = slugToDomain(slug);
   const listing = await getMarketplaceListing(domain, query);
-  return listing ?? scoreDomain(domain, query, 49.99, "registration", true);
+  return (
+    listing ?? {
+      ...scoreDomain(domain, query, 49.99, "registration", false),
+      availabilityStatus: "unknown" as const,
+      available: false,
+    }
+  );
 }
 
 export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
@@ -48,6 +59,8 @@ export default async function DomainReportPage({ params, searchParams }: PagePro
   const { q } = await searchParams;
   const query = q ?? "Eco Home Tech";
   const candidate = await getDomainData(name, query);
+  const canPurchase = canPurchaseDomain(candidate);
+  const showPrice = shouldShowPrice(candidate);
   const buyUrl = getBuyUrl(candidate.domain, candidate.priceType);
   const comAlt = candidate.domain.replace(/\.[^.]+$/, ".com");
   const comSlug = domainToSlug(comAlt);
@@ -84,12 +97,14 @@ export default async function DomainReportPage({ params, searchParams }: PagePro
           <h1 className="text-2xl font-bold text-[var(--on-surface)] md:text-3xl">{candidate.domain}</h1>
           <p className="text-sm text-[var(--on-surface-variant)]">Domain Signal Report</p>
           <p className="mt-2 text-xl font-bold tabular-nums md:text-2xl">
-            ${candidate.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-            {candidate.priceType === "registration" && (
+            {showPrice
+              ? `$${candidate.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+              : getAvailabilityLabel(candidate.availabilityStatus)}
+            {showPrice && candidate.priceType === "registration" && (
               <span className="text-base font-normal text-[var(--on-surface-variant)]">/yr</span>
             )}
           </p>
-          {candidate.available && (
+          {canPurchase && (
             <Badge variant="primary" className="mt-2">
               Available Now
             </Badge>
@@ -97,9 +112,11 @@ export default async function DomainReportPage({ params, searchParams }: PagePro
         </header>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap xl:flex-col">
-          <a href={buyUrl} target="_blank" rel="noopener noreferrer" className="sm:flex-1 xl:w-full">
-            <Button className="w-full">Buy Now</Button>
-          </a>
+          {canPurchase && (
+            <a href={buyUrl} target="_blank" rel="noopener noreferrer" className="sm:flex-1 xl:w-full">
+              <Button className="w-full">Buy Now</Button>
+            </a>
+          )}
           <Link href={`/compare?domains=${name},${comSlug}&q=${encodeURIComponent(query)}`} className="sm:flex-1 xl:w-full">
             <Button variant="outline" className="w-full">
               Compare against .com

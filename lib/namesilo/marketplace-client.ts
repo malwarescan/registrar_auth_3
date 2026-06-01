@@ -1,45 +1,10 @@
+import type { DomainBrief } from "@/lib/types/domain-brief";
 import type { AnalyzeFilters, DomainCandidate } from "@/lib/types/domain";
-import { discoverDomainsFromQuery } from "@/lib/intelligence/discover-domains";
-import { scoreDomain } from "@/lib/intelligence/score-domain";
-
-type MarketplaceListing = {
-  domain: string;
-  price: number;
-  priceType?: "registration" | "marketplace";
-  available?: boolean;
-};
-
-type MarketplaceSearchResponse = {
-  results?: MarketplaceListing[];
-  listings?: MarketplaceListing[];
-};
-
-function getConfig() {
-  return {
-    url: process.env.NAMESILO_MARKETPLACE_API_URL,
-    key: process.env.NAMESILO_MARKETPLACE_API_KEY,
-  };
-}
-
-function isValidHttpUrl(value: string | undefined): value is string {
-  if (!value?.trim()) return false;
-  try {
-    const parsed = new URL(value.trim());
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
-function normalizeListing(listing: MarketplaceListing, query: string): DomainCandidate {
-  return scoreDomain(
-    listing.domain,
-    query,
-    listing.price,
-    listing.priceType ?? "marketplace",
-    listing.available ?? true
-  );
-}
+import { discoverDomainsFromBrief } from "@/lib/intelligence/discover-domains";
+import { buildAnalysisQuery, deriveWeightsFromBrief } from "@/lib/intelligence/brief-to-weights";
+import { compositeScore, scoreDomain } from "@/lib/intelligence/score-domain";
+import { resolveBuyingIntent } from "@/lib/types/domain-brief";
+import { searchAuctionListings } from "@/lib/namesilo/public-api-client";
 
 function applyFilters(candidates: DomainCandidate[], filters?: AnalyzeFilters): DomainCandidate[] {
   let filtered = candidates;
@@ -53,63 +18,106 @@ function applyFilters(candidates: DomainCandidate[], filters?: AnalyzeFilters): 
   return filtered;
 }
 
+function mergeCandidates(
+  registration: DomainCandidate[],
+  marketplace: DomainCandidate[]
+): DomainCandidate[] {
+  const byDomain = new Map<string, DomainCandidate>();
+  for (const c of registration) {
+    byDomain.set(c.domain.toLowerCase(), c);
+  }
+  for (const c of marketplace) {
+    const key = c.domain.toLowerCase();
+    byDomain.set(key, c);
+  }
+  return [...byDomain.values()];
+}
+
 export async function searchMarketplace(
-  query: string,
+  brief: DomainBrief,
   filters?: AnalyzeFilters
-): Promise<{ candidates: DomainCandidate[]; usedFallback: boolean }> {
-  const { url, key } = getConfig();
+): Promise<{
+  candidates: DomainCandidate[];
+  dataSource: "marketplace" | "registration";
+  dataSourceNote: string;
+  apiConfigured: boolean;
+}> {
+  const query = buildAnalysisQuery(brief);
+  const intent = resolveBuyingIntent(brief);
+  const weights = deriveWeightsFromBrief(brief);
 
-  if (isValidHttpUrl(url)) {
-    try {
-      const searchUrl = new URL(`${url.replace(/\/$/, "")}/search`);
-      searchUrl.searchParams.set("q", query);
-      if (filters?.maxPrice) searchUrl.searchParams.set("maxPrice", String(filters.maxPrice));
-      if (filters?.tld) searchUrl.searchParams.set("tld", filters.tld.replace(".", ""));
+  const [{ candidates: registrationCandidates, apiConfigured }, auctionListings] =
+    await Promise.all([
+      discoverDomainsFromBrief(brief, filters),
+      searchAuctionListings(query, { pageSize: 20, maxPrice: filters?.maxPrice }),
+    ]);
 
-      const headers: Record<string, string> = { Accept: "application/json" };
-      if (key) headers.Authorization = `Bearer ${key}`;
+  const marketplaceCandidates = auctionListings.map((listing) =>
+    scoreDomain(listing.domain, query, listing.price, "marketplace", true, { intent })
+  );
 
-      const res = await fetch(searchUrl.toString(), { headers, next: { revalidate: 60 } });
-      if (!res.ok) throw new Error(`Marketplace API ${res.status}`);
+  let candidates = applyFilters(
+    mergeCandidates(registrationCandidates, marketplaceCandidates),
+    filters
+  );
 
-      const data = (await res.json()) as MarketplaceSearchResponse;
-      const listings = data.results ?? data.listings ?? [];
-      if (listings.length > 0) {
-        const candidates = listings.map((l) => normalizeListing(l, query));
-        return { candidates: applyFilters(candidates, filters), usedFallback: false };
-      }
-    } catch (err) {
-      console.warn("[marketplace] API unavailable, using query-driven discovery:", err);
-    }
+  candidates.sort((a, b) => compositeScore(b, weights) - compositeScore(a, weights));
+
+  const hasMarketplace = marketplaceCandidates.length > 0;
+  const hasApiErrorStatus = candidates.some(
+    (c) => c.availabilityStatus === "api_error" || c.availabilityStatus === "unknown"
+  );
+
+  let dataSourceNote: string;
+  if (!apiConfigured) {
+    dataSourceNote =
+      "Availability check disabled — generated candidates are idea-only until NAMESILO_API_KEY is configured.";
+  } else if (hasApiErrorStatus) {
+    dataSourceNote =
+      "Availability checks encountered NameSilo API errors for some candidates. Unverified domains are clearly marked and are not buyable.";
+  } else if (hasMarketplace) {
+    dataSourceNote =
+      "Verified through NameSilo API — registration availability, pricing, and marketplace listings.";
+  } else {
+    dataSourceNote =
+      "Registration availability is verified through NameSilo. Premium marketplace listings are not included in this response.";
   }
 
-  const candidates = await discoverDomainsFromQuery(query, filters);
-  return { candidates: applyFilters(candidates, filters), usedFallback: true };
+  return {
+    candidates,
+    dataSource: hasMarketplace ? "marketplace" : "registration",
+    dataSourceNote,
+    apiConfigured,
+  };
 }
 
 export async function getMarketplaceListing(
   domain: string,
   query = ""
 ): Promise<DomainCandidate | null> {
-  const { url, key } = getConfig();
+  const { getRegistrationPrice, checkRegisterAvailability } = await import(
+    "@/lib/namesilo/public-api-client"
+  );
 
-  if (isValidHttpUrl(url)) {
-    try {
-      const listingUrl = `${url.replace(/\/$/, "")}/listing/${encodeURIComponent(domain)}`;
-      const headers: Record<string, string> = { Accept: "application/json" };
-      if (key) headers.Authorization = `Bearer ${key}`;
+  const normalized = domain.trim().toLowerCase();
+  if (!normalized.includes(".")) return null;
 
-      const res = await fetch(listingUrl, { headers, next: { revalidate: 60 } });
-      if (res.ok) {
-        const listing = (await res.json()) as MarketplaceListing;
-        return normalizeListing(listing, query);
-      }
-    } catch {
-      /* fall through */
-    }
+  const [availability, tldPrice] = await Promise.all([
+    checkRegisterAvailability([normalized]),
+    getRegistrationPrice(normalized.split(".").pop() ?? "com"),
+  ]);
+
+  const available = availability[normalized] ?? false;
+  if (available) {
+    const price = tldPrice ?? (normalized.endsWith(".com") ? 10.99 : 12.99);
+    return scoreDomain(normalized, query || normalized, price, "registration", true);
   }
 
-  const tld = domain.split(".").pop() ?? "com";
-  const price = tld === "com" ? 10.99 : 12.99;
-  return scoreDomain(domain, query || domain, price, "registration", true);
+  const auctions = await searchAuctionListings(query || normalized.split(".")[0], { pageSize: 50 });
+  const match = auctions.find((a) => a.domain === normalized);
+  if (match) {
+    return scoreDomain(normalized, query || normalized, match.price, "marketplace", true);
+  }
+
+  return scoreDomain(normalized, query || normalized, tldPrice ?? 99, "registration", false);
 }

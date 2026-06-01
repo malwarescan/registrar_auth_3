@@ -12,7 +12,7 @@ import { NoStrongMatches } from "@/components/search/NoStrongMatches";
 import { QuickStartRail } from "@/components/search/QuickStartRail";
 import type { AnalyzeResponse, OptimizeMode } from "@/lib/types/domain";
 import { OPTIMIZE_PRESETS } from "@/lib/types/domain";
-import { DEFAULT_BRIEF, type DomainBrief, type SearchUIMode } from "@/lib/types/domain-brief";
+import { DEFAULT_BRIEF, type DomainBrief } from "@/lib/types/domain-brief";
 import {
   applyBriefRequirements,
   briefToFilters,
@@ -31,7 +31,6 @@ export function SearchPageClient() {
   const { recent, addRecent } = useRecentSearches();
 
   const [brief, setBrief] = useState<DomainBrief>(DEFAULT_BRIEF);
-  const [uiMode, setUiMode] = useState<SearchUIMode>("strategy");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AnalyzeResponse | null>(null);
@@ -43,7 +42,7 @@ export function SearchPageClient() {
     async (overrideBrief?: DomainBrief) => {
       const b = overrideBrief ?? brief;
       const q = buildAnalysisQuery(b).trim();
-      if (!q) return;
+      if (!q || !b.buyingIntent) return;
       setBrief(b);
       setLoading(true);
       setError(null);
@@ -52,10 +51,15 @@ export function SearchPageClient() {
         const res = await fetch("/api/analyze", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: q, filters: briefToFilters(b) }),
+          body: JSON.stringify({
+            brief: b,
+            filters: briefToFilters(b),
+            weights: deriveWeightsFromBrief(b),
+          }),
         });
         if (!res.ok) {
-          setError("Analysis failed. Please try again.");
+          const err = (await res.json()) as { error?: string };
+          setError(err.error ?? "Analysis failed. Please try again.");
           return;
         }
         const result = (await res.json()) as AnalyzeResponse;
@@ -73,11 +77,14 @@ export function SearchPageClient() {
 
   const handleExampleBrief = (partial: Partial<DomainBrief>) => {
     setBrief(mergeBrief(partial));
-    setUiMode("strategy");
   };
 
   const handlePathSelect = (path: StartingPath) => {
-    const merged = mergeBrief({ naming: path.query, searchMode: path.mode });
+    const merged = mergeBrief({
+      naming: path.query,
+      searchMode: path.mode,
+      buyingIntent: "business_brand",
+    });
     setBrief(merged);
     void analyze(merged);
   };
@@ -122,8 +129,6 @@ export function SearchPageClient() {
               <SearchHeroPanel
                 brief={brief}
                 onBriefChange={setBrief}
-                uiMode={uiMode}
-                onUiModeChange={setUiMode}
                 onAnalyze={() => void analyze()}
                 loading={loading}
                 onExampleBrief={handleExampleBrief}
@@ -148,8 +153,6 @@ export function SearchPageClient() {
             <SearchHeroPanel
               brief={brief}
               onBriefChange={setBrief}
-              uiMode={uiMode}
-              onUiModeChange={setUiMode}
               onAnalyze={() => void analyze()}
               loading={loading}
               compact

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import type { PinRecommendation } from "@/lib/types/domain-brief";
 import { getBuyUrl } from "@/lib/namesilo/urls";
 import { domainToSlug } from "@/lib/shortlist/use-shortlist";
+import { canPurchaseDomain, getAvailabilityLabel, shouldShowPrice } from "@/lib/domains/availability";
 
 type PinnedDomainCardProps = {
   recommendation: PinRecommendation;
@@ -27,6 +28,8 @@ export function PinnedDomainCard({
   shortlisted,
 }: PinnedDomainCardProps) {
   const { domain, whyPinned, wins, tradeoff, recommendedIf, alternatives, score } = recommendation;
+  const purchasable = canPurchaseDomain(domain);
+  const showPrice = shouldShowPrice(domain);
 
   return (
     <Card padding="lg" className="border-2 border-[var(--secondary)] bg-gradient-to-br from-white to-[var(--surface-container-low)]">
@@ -44,12 +47,16 @@ export function PinnedDomainCard({
           >
             {domain.domain}
           </Link>
-          <p className="mt-1 text-lg font-bold tabular-nums">
-            ${domain.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-            {domain.priceType === "registration" && (
-              <span className="text-sm font-normal text-[var(--on-surface-variant)]">/yr</span>
-            )}
-          </p>
+          {showPrice ? (
+            <p className="mt-1 text-lg font-bold tabular-nums">
+              ${domain.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              {domain.priceType === "registration" && (
+                <span className="text-sm font-normal text-[var(--on-surface-variant)]">/yr</span>
+              )}
+            </p>
+          ) : (
+            <p className="mt-1 text-lg font-bold">{getAvailabilityLabel(domain.availabilityStatus)}</p>
+          )}
         </div>
         <div className="flex flex-col items-end gap-1">
           <span className="rounded-full bg-[var(--secondary)] px-3 py-1 text-sm font-bold tabular-nums text-white">
@@ -104,11 +111,13 @@ export function PinnedDomainCard({
       )}
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <a href={getBuyUrl(domain.domain, domain.priceType)} target="_blank" rel="noopener noreferrer">
-          <Button size="sm">
-            <ShoppingCart className="mr-1 h-3.5 w-3.5" /> Buy Now
-          </Button>
-        </a>
+        {purchasable && (
+          <a href={getBuyUrl(domain.domain, domain.priceType)} target="_blank" rel="noopener noreferrer">
+            <Button size="sm">
+              <ShoppingCart className="mr-1 h-3.5 w-3.5" /> Buy Now
+            </Button>
+          </a>
+        )}
         <Button variant="outline" size="sm" onClick={onShortlist} disabled={shortlisted}>
           <Heart className="mr-1 h-3.5 w-3.5" />
           {shortlisted ? "Shortlisted" : "Shortlist"}

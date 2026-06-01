@@ -125,34 +125,6 @@ export const WHAT_YOU_GET = [
   { icon: "compare", label: "Compare View" },
 ] as const;
 
-export const OUTPUT_PREVIEW_ITEMS = [
-  {
-    icon: "map" as const,
-    title: "Signal Map",
-    description: "Plot domains by brand strength, SEO relevance, AI clarity, trust, and value.",
-  },
-  {
-    icon: "stack" as const,
-    title: "Decision Stack",
-    description: "Winners for best brand, SEO fit, AI visibility, value, and lowest risk.",
-  },
-  {
-    icon: "matrix" as const,
-    title: "Ranking Matrix",
-    description: "Compare domains side by side across the signals that matter.",
-  },
-  {
-    icon: "pin" as const,
-    title: "Pinned Best Domain",
-    description: "Strongest recommended domain with wins, tradeoffs, and alternatives.",
-  },
-  {
-    icon: "compare" as const,
-    title: "Compare View",
-    description: "Review top options before buying.",
-  },
-];
-
 export const SAMPLE_DECISION_STACK = [
   { label: "Best Brand", domain: "BrightNest.com" },
   { label: "Best SEO", domain: "EcoHomeTech.com" },

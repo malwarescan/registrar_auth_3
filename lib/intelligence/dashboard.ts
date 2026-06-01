@@ -13,6 +13,7 @@ import type {
 import { OPTIMIZE_PRESETS } from "@/lib/types/domain";
 import { compositeScore, computeValueScore, sortByOptimizeMode } from "./score-domain";
 import { parseDomain } from "./parse-domain";
+import { isBenchmarkOnly, isRecommendationEligible } from "@/lib/domains/availability";
 
 function clamp(n: number, min = 0, max = 100): number {
   return Math.max(min, Math.min(max, Math.round(n)));
@@ -168,7 +169,8 @@ export function buildWinners(
   candidates: DomainCandidate[],
   weights: SignalWeights
 ): SignalWinner[] {
-  const enriched = candidates.map(enrichCandidate);
+  const purchasable = candidates.filter((c) => isRecommendationEligible(c));
+  const enriched = purchasable.map(enrichCandidate);
   if (enriched.length === 0) return [];
 
   const used = new Set<string>();
@@ -246,12 +248,20 @@ export function buildDashboardView(
   weights: SignalWeights
 ): DashboardView {
   const enriched = candidates.map(enrichCandidate);
-  const rankings = buildRankings(enriched, weights);
-  const winners = buildWinners(enriched, weights);
-  const rankedResults = sortByWeights(enriched, weights);
+  const buyable = enriched.filter((c) => isRecommendationEligible(c));
+  const rankings = buildRankings(buyable, weights);
+  const winners = buildWinners(buyable, weights);
+  const rankedResults = sortByWeights(buyable, weights);
   const graphPoints = buildGraphPoints(enriched);
 
-  return { candidates: enriched, rankings, winners, rankedResults, graphPoints };
+  const benchmarkOnly = enriched
+    .filter((c) => isBenchmarkOnly(c))
+    .sort((a, b) => compositeScore(b, weights) - compositeScore(a, weights));
+  const ideaOnly = enriched.filter(
+    (c) => c.availabilityStatus === "idea_only" || c.availabilityStatus === "unknown" || c.availabilityStatus === "api_error"
+  );
+
+  return { candidates: [...buyable, ...benchmarkOnly, ...ideaOnly], rankings, winners, rankedResults, graphPoints };
 }
 
 export function getRankLabel(dimension: RankingDimension, rank: number, total: number): string {
@@ -273,11 +283,31 @@ export function getRankLabel(dimension: RankingDimension, rank: number, total: n
 export function getTopRankChips(
   rankings: DomainRankings,
   total: number,
+  candidate?: DomainCandidate,
   limit = 4
 ): Array<{ label: string; rank: number; dimension: RankingDimension }> {
   const dims: RankingDimension[] = ["seo", "ai", "value", "brand", "trust", "resale", "marketing"];
+  const minScores: Partial<Record<RankingDimension, number>> = {
+    seo: 68,
+    ai: 65,
+    brand: 68,
+    trust: 80,
+    value: 60,
+    resale: 55,
+    marketing: 65,
+  };
+
+  function signalFor(d: RankingDimension): number {
+    if (!candidate) return 100;
+    if (d === "value") return candidate.valueScore ?? 0;
+    if (d === "risk") return 100 - (candidate.riskScore ?? 50);
+    const key = d === "seo" ? "search" : d;
+    return candidate.signals[key as keyof typeof candidate.signals] ?? 0;
+  }
+
   return dims
     .map((d) => ({ dimension: d, rank: rankings[d], label: getRankLabel(d, rankings[d], total) }))
+    .filter((d) => d.rank === 1 && signalFor(d.dimension) >= (minScores[d.dimension] ?? 60))
     .sort((a, b) => a.rank - b.rank)
     .slice(0, limit);
 }

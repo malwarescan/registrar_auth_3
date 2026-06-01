@@ -1,21 +1,20 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { ChevronDown, Search } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
 import { Card } from "@/components/ui/Card";
-import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { SearchModeTabs } from "@/components/search/SearchModeTabs";
 import { RequirementChips } from "@/components/search/RequirementChips";
 import { ExampleBriefChips } from "@/components/search/ExampleBriefChips";
-import type { DomainBrief, SearchUIMode } from "@/lib/types/domain-brief";
-import type { SearchMode } from "@/lib/search/search-config";
-import { getSuggestions } from "@/lib/search/search-config";
+import type { BuyingIntent, DomainBrief } from "@/lib/types/domain-brief";
 import {
-  GOAL_VISIBLE_FIELDS,
-  SEARCH_GOALS,
+  applyIntentToBrief,
+  BUDGET_OPTIONS,
+  BUYING_INTENTS,
+  INTENT_VISIBLE_FIELDS,
+  MARKET_SCOPES,
+  TLD_OPTIONS,
   WEIGHT_LABELS,
 } from "@/lib/search/brief-config";
 import { cn } from "@/lib/utils";
@@ -23,8 +22,6 @@ import { cn } from "@/lib/utils";
 type SearchHeroPanelProps = {
   brief: DomainBrief;
   onBriefChange: (brief: DomainBrief) => void;
-  uiMode: SearchUIMode;
-  onUiModeChange: (mode: SearchUIMode) => void;
   onAnalyze: () => void;
   loading?: boolean;
   compact?: boolean;
@@ -83,42 +80,87 @@ function Field({
   );
 }
 
+function ChipSelect({
+  label,
+  options,
+  selected,
+  onChange,
+}: {
+  label: string;
+  options: string[];
+  selected: string[];
+  onChange: (v: string[]) => void;
+}) {
+  const toggle = (opt: string) => {
+    onChange(selected.includes(opt) ? selected.filter((s) => s !== opt) : [...selected, opt]);
+  };
+  return (
+    <div>
+      <span className="mb-1.5 block text-xs text-[var(--on-surface-variant)]">{label}</span>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((opt) => (
+          <Chip key={opt} active={selected.includes(opt)} onClick={() => toggle(opt)} className="text-xs">
+            {opt}
+          </Chip>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function SearchHeroPanel({
   brief,
   onBriefChange,
-  uiMode,
-  onUiModeChange,
   onAnalyze,
   loading,
   compact,
   onExampleBrief,
 }: SearchHeroPanelProps) {
-  const [focused, setFocused] = useState(false);
   const update = (patch: Partial<DomainBrief>) => onBriefChange({ ...brief, ...patch });
 
-  const suggestions = useMemo(() => {
-    if (!focused || brief.naming.trim().length < 2) return [];
-    return getSuggestions(brief.naming);
-  }, [focused, brief.naming]);
+  const handleIntentChange = (intent: BuyingIntent) => {
+    onBriefChange(applyIntentToBrief(brief, intent));
+  };
 
-  const visibleFields = brief.searchGoal ? GOAL_VISIBLE_FIELDS[brief.searchGoal] : null;
-  const show = (field: string) => !visibleFields || visibleFields.includes(field);
+  const visibleFields = brief.buyingIntent ? INTENT_VISIBLE_FIELDS[brief.buyingIntent] : [];
+  const show = (field: string) => visibleFields.includes(field);
+
+  const canAnalyze = Boolean(brief.buyingIntent && brief.naming.trim());
 
   if (compact) {
     return (
-      <Card padding="sm" className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--on-surface-variant)]" />
-          <input
-            type="search"
-            value={brief.naming}
-            onChange={(e) => update({ naming: e.target.value })}
-            onKeyDown={(e) => e.key === "Enter" && onAnalyze()}
-            placeholder="What are you naming?"
-            className="w-full rounded-lg border border-[var(--outline-variant)] py-2 pl-9 pr-3 text-sm outline-none focus:border-[var(--secondary)]"
-          />
+      <Card padding="sm" className="flex flex-col gap-2 sm:flex-row sm:items-end">
+        <div className="grid flex-1 gap-2 sm:grid-cols-2">
+          <label className="block">
+            <span className="mb-1 block text-[10px] font-semibold uppercase text-[var(--on-surface-variant)]">
+              Buying intent
+            </span>
+            <select
+              value={brief.buyingIntent ?? ""}
+              onChange={(e) => handleIntentChange(e.target.value as BuyingIntent)}
+              className="w-full rounded-lg border border-[var(--outline-variant)] px-3 py-2 text-sm"
+            >
+              <option value="">Select intent…</option>
+              {BUYING_INTENTS.map((g) => (
+                <option key={g.value} value={g.value}>{g.label}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[10px] font-semibold uppercase text-[var(--on-surface-variant)]">
+              What you are building
+            </span>
+            <input
+              type="search"
+              value={brief.naming}
+              onChange={(e) => update({ naming: e.target.value })}
+              onKeyDown={(e) => e.key === "Enter" && canAnalyze && onAnalyze()}
+              placeholder="Home security system company"
+              className="w-full rounded-lg border border-[var(--outline-variant)] py-2 px-3 text-sm outline-none focus:border-[var(--secondary)]"
+            />
+          </label>
         </div>
-        <Button onClick={onAnalyze} disabled={loading || !brief.naming.trim()}>
+        <Button onClick={onAnalyze} disabled={loading || !canAnalyze}>
           {loading ? "Analyzing…" : "Analyze Domains"}
         </Button>
       </Card>
@@ -126,36 +168,41 @@ export function SearchHeroPanel({
   }
 
   return (
-    <Card
-      padding="lg"
-      className="border border-[var(--outline-variant)] bg-white shadow-sm"
-    >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="max-w-xl">
-          <h1 className="text-xl font-bold tracking-tight text-[var(--on-surface)] md:text-2xl">
-            Find the strongest domain for your strategy
-          </h1>
-          <p className="mt-2 text-sm leading-relaxed text-[var(--on-surface-variant)]">
-            Enter what you are building and what matters most. We&apos;ll rank domains by brand
-            strength, SEO fit, AI visibility, trust, value, resale potential, and risk — then pin the
-            strongest choice.
-          </p>
-        </div>
-        <SegmentedControl
-          className="shrink-0 sm:w-56"
-          options={[
-            { value: "quick" as SearchUIMode, label: "Quick Search" },
-            { value: "strategy" as SearchUIMode, label: "Strategy Brief" },
-          ]}
-          value={uiMode}
-          onChange={onUiModeChange}
-          variant="primary"
-        />
+    <Card padding="lg" className="border border-[var(--outline-variant)] bg-white shadow-sm">
+      <div className="max-w-2xl">
+        <h1 className="text-xl font-bold tracking-tight text-[var(--on-surface)] md:text-2xl">
+          Find the strongest domain for your strategy
+        </h1>
+        <p className="mt-2 text-sm leading-relaxed text-[var(--on-surface-variant)]">
+          Tell us why you are buying a domain and what you are building. We&apos;ll generate candidates,
+          verify availability through NameSilo, then rank them by brand, marketing, SEO, AI visibility,
+          trust, value, resale potential, and risk.
+        </p>
       </div>
 
+      {/* Step 1: Buying intent */}
+      <div className="mt-6">
+        <label className="mb-2 block text-[11px] font-semibold uppercase tracking-wide text-[var(--on-surface-variant)]">
+          Step 1 — What are you buying this domain for?
+        </label>
+        <select
+          value={brief.buyingIntent ?? ""}
+          onChange={(e) => handleIntentChange(e.target.value as BuyingIntent)}
+          className="w-full rounded-lg border border-[var(--outline-variant)] bg-[var(--surface-container-lowest)] px-3 py-2.5 text-sm outline-none focus:border-[var(--secondary)]"
+        >
+          <option value="">Select buying intent…</option>
+          {BUYING_INTENTS.map((g) => (
+            <option key={g.value} value={g.value}>
+              {g.label} — {g.description}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Step 2: Business context */}
       <div className="mt-5">
         <label className="mb-2 block text-[11px] font-semibold uppercase tracking-wide text-[var(--on-surface-variant)]">
-          What are you naming?
+          Step 2 — Tell us what you are building
         </label>
         <div className="relative">
           <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--on-surface-variant)]" />
@@ -163,85 +210,71 @@ export function SearchHeroPanel({
             type="search"
             value={brief.naming}
             onChange={(e) => update({ naming: e.target.value })}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setTimeout(() => setFocused(false), 150)}
-            onKeyDown={(e) => e.key === "Enter" && onAnalyze()}
-            placeholder="Eco home technology SaaS for homeowners"
+            onKeyDown={(e) => e.key === "Enter" && canAnalyze && onAnalyze()}
+            placeholder='Example: "home security system company" or "AI real estate assistant"'
             className="w-full rounded-lg border border-[var(--outline-variant)] bg-[var(--surface-container-lowest)] py-2.5 pl-10 pr-4 text-sm outline-none focus:border-[var(--secondary)] focus:ring-2 focus:ring-[var(--secondary)]/15"
           />
-          {suggestions.length > 0 && (
-            <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-lg border border-[var(--outline-variant)] bg-white shadow-md">
-              {suggestions.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  className="block w-full px-4 py-2 text-left text-sm hover:bg-[var(--surface-container-low)]"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    update({ naming: s });
-                  }}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
-        <p className="mt-1.5 text-xs text-[var(--on-surface-variant)]">
-          Business idea, keyword, current domain, industry, or investor research
-        </p>
       </div>
 
-      <div className="mt-4">
-        <SearchModeTabs
-          value={brief.searchMode}
-          onChange={(mode) => update({ searchMode: mode as SearchMode })}
-        />
-      </div>
-
-      {uiMode === "strategy" && (
+      {/* Step 3: Dynamic context */}
+      {brief.buyingIntent && (
         <div className="mt-4 space-y-2">
-          <BriefSection title="Search goal" defaultOpen>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {SEARCH_GOALS.map((g) => (
-                <button
-                  key={g.value}
-                  type="button"
-                  onClick={() => update({ searchGoal: g.value })}
-                  className={cn(
-                    "rounded-md border px-3 py-2 text-left text-sm transition-colors",
-                    brief.searchGoal === g.value
-                      ? "border-[var(--secondary)] bg-[var(--surface-container-low)]"
-                      : "border-[var(--outline-variant)] hover:border-[var(--secondary)]/50"
-                  )}
-                >
-                  <span className="font-medium text-[var(--on-surface)]">{g.label}</span>
-                  <span className="mt-0.5 block text-xs text-[var(--on-surface-variant)]">
-                    {g.description}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </BriefSection>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--on-surface-variant)]">
+            Step 3 — Optional context
+          </p>
 
-          <BriefSection title="Business context">
+          <BriefSection title="Business & audience context" defaultOpen>
             <div className="grid gap-3 sm:grid-cols-2">
+              {show("personalName") && (
+                <Field label="Your name" value={brief.personalName} onChange={(v) => update({ personalName: v })} placeholder="Jane Smith" />
+              )}
+              {show("profession") && (
+                <Field label="Profession" value={brief.profession} onChange={(v) => update({ profession: v })} placeholder="Consultant, designer…" />
+              )}
               {show("industry") && (
-                <Field label="Industry" value={brief.industry} onChange={(v) => update({ industry: v })} placeholder="Smart home / energy" />
+                <Field label="Industry" value={brief.industry} onChange={(v) => update({ industry: v })} placeholder="Home security" />
+              )}
+              {show("productService") && (
+                <Field label="Service / product" value={brief.productService} onChange={(v) => update({ productService: v })} placeholder="Landscaping, alarm install…" />
               )}
               {show("audience") && (
-                <Field label="Target audience" value={brief.audience} onChange={(v) => update({ audience: v })} placeholder="Homeowners" />
+                <Field label="Target customer" value={brief.audience} onChange={(v) => update({ audience: v })} placeholder="Homeowners, families" />
               )}
               {show("location") && (
-                <Field label="Location / scope" value={brief.location} onChange={(v) => update({ location: v })} placeholder="Florida" />
+                <Field label="City / region" value={brief.location} onChange={(v) => update({ location: v })} placeholder="Austin, TX" />
               )}
               {show("currentDomain") && (
                 <Field label="Current domain" value={brief.currentDomain} onChange={(v) => update({ currentDomain: v })} placeholder="mybrand.io" />
               )}
               {show("competitors") && (
-                <Field label="Competitors" value={brief.competitors} onChange={(v) => update({ competitors: v })} placeholder="competitor.com" />
+                <Field label="Competitors / related brands" value={brief.competitors} onChange={(v) => update({ competitors: v })} placeholder="competitor.com" />
+              )}
+              {show("marketScope") && (
+                <label className="block">
+                  <span className="mb-1 block text-xs text-[var(--on-surface-variant)]">Market scope</span>
+                  <select
+                    value={brief.marketScope}
+                    onChange={(e) => update({ marketScope: e.target.value })}
+                    className="w-full rounded-md border border-[var(--outline-variant)] px-3 py-2 text-sm"
+                  >
+                    <option value="">Select…</option>
+                    {MARKET_SCOPES.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </label>
               )}
             </div>
+
+            {show("brandTones") && (
+              <ChipSelect
+                label="Brand tone"
+                options={["Trustworthy", "Modern", "Premium", "Simple", "Protective", "Friendly", "Technical"]}
+                selected={brief.brandTones}
+                onChange={(v) => update({ brandTones: v })}
+              />
+            )}
           </BriefSection>
 
           <BriefSection title="Priority weights">
@@ -270,49 +303,36 @@ export function SearchHeroPanel({
             </div>
           </BriefSection>
 
-          <BriefSection title="Domain requirements">
-            <RequirementChips
-              selected={brief.requirements}
-              onChange={(v) => update({ requirements: v })}
-            />
+          <BriefSection title="Requirements">
+            <RequirementChips selected={brief.requirements} onChange={(v) => update({ requirements: v })} />
             <div className="mt-3 flex flex-wrap gap-2">
               <select
                 value={brief.maxPrice}
                 onChange={(e) => update({ maxPrice: parseInt(e.target.value, 10) })}
                 className="rounded-md border border-[var(--outline-variant)] px-2 py-1.5 text-xs"
               >
-                <option value={500}>Under $500</option>
-                <option value={2000}>Under $2,000</option>
-                <option value={5000}>Under $5k</option>
-                <option value={10000}>Under $10k</option>
+                {BUDGET_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
               </select>
               <select
                 value={brief.tldPreference}
                 onChange={(e) => update({ tldPreference: e.target.value })}
                 className="rounded-md border border-[var(--outline-variant)] px-2 py-1.5 text-xs"
               >
-                <option value="any">Any TLD</option>
-                <option value="com">.com</option>
-                <option value="net">.net</option>
-                <option value="io">.io</option>
+                {TLD_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
               </select>
-              <Chip active={brief.buyNowOnly} onClick={() => update({ buyNowOnly: !brief.buyNowOnly })} className="text-xs">
-                Buy now only
-              </Chip>
             </div>
           </BriefSection>
         </div>
       )}
 
       <div className="mt-5 flex flex-wrap items-center gap-2">
-        <Button size="lg" onClick={onAnalyze} disabled={loading || !brief.naming.trim()}>
+        <Button size="lg" onClick={onAnalyze} disabled={loading || !canAnalyze}>
           {loading ? "Analyzing…" : "Analyze Domains"}
         </Button>
-        <Link href="https://www.namesilo.com/marketplace" target="_blank" rel="noopener noreferrer">
-          <Button variant="outline" size="lg" type="button">
-            Browse Marketplace
-          </Button>
-        </Link>
       </div>
 
       <div className="mt-5 border-t border-[var(--outline-variant)] pt-4">

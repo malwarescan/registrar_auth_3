@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { ChevronDown, Search, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
@@ -155,16 +154,6 @@ export function SearchHero({
             <Button size="lg" onClick={onAnalyze} disabled={loading || !query.trim()} className="flex-1 sm:flex-none">
               {loading ? "Analyzing…" : "Analyze Domains"}
             </Button>
-            <Link
-              href="https://www.namesilo.com/marketplace"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden sm:inline-flex"
-            >
-              <Button variant="outline" size="lg" type="button">
-                Browse Marketplace
-              </Button>
-            </Link>
           </div>
         </div>
       </div>

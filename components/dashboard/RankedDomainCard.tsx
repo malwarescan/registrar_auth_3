@@ -11,10 +11,16 @@ import { getTopRankChips } from "@/lib/intelligence/dashboard";
 import { getBuyUrl } from "@/lib/namesilo/urls";
 import { domainToSlug } from "@/lib/shortlist/use-shortlist";
 import { cn } from "@/lib/utils";
+import {
+  canPurchaseDomain,
+  getAvailabilityLabel,
+  isBenchmarkOnly,
+  shouldShowPrice,
+} from "@/lib/domains/availability";
 
 type RankedDomainCardProps = {
   candidate: DomainCandidate;
-  rankings: DomainRankings;
+  rankings?: DomainRankings;
   total: number;
   rank: number;
   active?: boolean;
@@ -39,7 +45,10 @@ export function RankedDomainCard({
   shortlisted,
   isBenchmark,
 }: RankedDomainCardProps) {
-  const chips = getTopRankChips(rankings, total);
+  const purchasable = canPurchaseDomain(candidate);
+  const benchmarkOnly = isBenchmarkOnly(candidate);
+  const showPrice = shouldShowPrice(candidate);
+  const chips = rankings ? getTopRankChips(rankings, total, candidate) : [];
   const evidence = candidate.analysis.signalEvidence;
 
   return (
@@ -60,7 +69,7 @@ export function RankedDomainCard({
         <div>
           <div className="mb-1 flex items-center gap-2">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--theme-primary)] text-xs font-bold text-white">
-              {rank}
+              {purchasable ? rank : "B"}
             </span>
             <Link
               href={`/domain/${domainToSlug(candidate.domain)}`}
@@ -70,12 +79,25 @@ export function RankedDomainCard({
               {candidate.domain}
             </Link>
           </div>
-          <p className="text-lg font-bold tabular-nums">
-            ${candidate.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-            {candidate.priceType === "registration" && (
-              <span className="text-sm font-normal text-[var(--on-surface-variant)]">/yr</span>
-            )}
-          </p>
+          {showPrice ? (
+            <p className="text-lg font-bold tabular-nums">
+              ${candidate.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              {candidate.priceType === "registration" && (
+                <span className="text-sm font-normal text-[var(--on-surface-variant)]">/yr</span>
+              )}
+            </p>
+          ) : (
+            <p className="text-lg font-bold text-[var(--on-surface)]">
+              {candidate.availabilityStatus === "taken" ? "Taken" : "Not purchasable"}
+            </p>
+          )}
+          <Badge
+            variant={purchasable ? "success" : "default"}
+            className="mt-1 text-[10px]"
+          >
+            {getAvailabilityLabel(candidate.availabilityStatus)}
+            {benchmarkOnly && " — benchmark only"}
+          </Badge>
         </div>
       </div>
 
@@ -114,6 +136,9 @@ export function RankedDomainCard({
               {evidence.seo}
             </p>
           )}
+          {evidence && (candidate.riskScore ?? 100) <= 30 && (
+            <p className="mt-2 text-xs text-[var(--success)]">{evidence.risk}</p>
+          )}
         </div>
         <div>
           <p className="mb-1 text-xs font-bold uppercase tracking-wide text-[var(--error)]">
@@ -124,7 +149,7 @@ export function RankedDomainCard({
               <li key={w}>• {w}</li>
             ))}
           </ul>
-          {evidence && (
+          {evidence && (candidate.riskScore ?? 100) > 30 && (
             <p className="mt-2 text-xs italic text-[var(--on-surface-variant)]">
               {evidence.risk}
             </p>
@@ -157,14 +182,20 @@ export function RankedDomainCard({
         <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); onCompare?.(); }}>
           <ArrowLeftRight className="mr-1 h-3.5 w-3.5" /> Compare
         </Button>
-        <a
-          href={getBuyUrl(candidate.domain, candidate.priceType)}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <Button size="sm">Buy Now</Button>
-        </a>
+        {purchasable ? (
+          <a
+            href={getBuyUrl(candidate.domain, candidate.priceType)}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Button size="sm">Buy Now</Button>
+          </a>
+        ) : (
+          <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); onCompare?.(); }}>
+            Find available alternatives
+          </Button>
+        )}
       </div>
     </Card>
   );
