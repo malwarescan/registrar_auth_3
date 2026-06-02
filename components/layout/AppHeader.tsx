@@ -11,25 +11,29 @@ type AppHeaderProps = {
 
 export function AppHeader({
   title = "NameSilo Intelligence",
-  showLogo = false,
+  showLogo = true,
   showSearch = true,
   backHref,
 }: AppHeaderProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--outline-variant)] bg-white/95 backdrop-blur-sm">
       <div className="mx-auto flex max-w-[var(--container-max)] items-center justify-between px-4 py-3 md:px-6 lg:py-4">
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           {backHref && (
             <Link href={backHref} className="mr-1 text-[var(--on-surface-variant)] lg:hidden">
               ←
             </Link>
           )}
           {showLogo ? (
-            <Link href="/" className="lg:hidden">
-              <BrandLogo className="h-7 w-7" />
+            <Link
+              href="/"
+              aria-label="NameSilo Intelligence home"
+              className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center overflow-visible lg:hidden"
+            >
+              <BrandLogo className="h-9 w-9" priority />
             </Link>
           ) : (
-            <h1 className="text-base font-bold text-[var(--theme-primary)] md:text-lg lg:hidden">
+            <h1 className="truncate text-base font-bold text-[var(--theme-primary)] md:text-lg lg:hidden">
               {title}
             </h1>
           )}

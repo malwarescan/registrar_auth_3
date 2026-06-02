@@ -4,6 +4,9 @@
  */
 import type { DomainCandidate } from "../lib/types/domain";
 import type { NamingCriteria } from "../lib/intelligence/naming-criteria";
+import { resolveQueryLiteralness } from "../lib/intelligence/query-literalness";
+import { DEFAULT_BRIEF } from "../lib/types/domain-brief";
+import { mergeBrief } from "../lib/search/brief-config";
 import {
   buildRejectionContext,
   passesRejectionPipeline,
@@ -64,6 +67,18 @@ const businessBrandCriteria: NamingCriteria = {
   tldPreference: ["com"],
   hasSubject: true,
   isLocalContext: false,
+  literalness: resolveQueryLiteralness(
+    mergeBrief({
+      ...DEFAULT_BRIEF,
+      naming: "Home security system company",
+      buyingIntent: "business_brand",
+      industry: "security",
+      audience: "homeowners",
+      productService: "security",
+      marketScope: "national",
+      brandTones: ["trustworthy"],
+    })
+  ),
 };
 
 const guardNestSeed: RegenerationSeed = {
@@ -272,6 +287,10 @@ const meta = buildRegenerationMeta({
   regenerationTriggered: true,
   regenerationSeeds: ["guardnest.com"],
   lanesExpanded: ["premium_brandable", "service_clear"],
+  queryLiteralness: "semantic_context",
+  briefQuality: "strong",
+  literalRootUsed: false,
+  literalRoot: null,
 });
 assert("generationMeta pass1Checked", meta.pass1Checked === 80);
 assert("generationMeta pass2Checked", meta.pass2Checked === 35);

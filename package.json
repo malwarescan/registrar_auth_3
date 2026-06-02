@@ -9,7 +9,8 @@
     "lint": "eslint",
     "qa:generation-foundation": "npx tsx scripts/qa-generation-foundation.ts",
     "qa:regeneration": "npx tsx scripts/qa-regeneration.ts",
-    "qa:decision-stack": "npx tsx scripts/qa-decision-stack.ts"
+    "qa:decision-stack": "npx tsx scripts/qa-decision-stack.ts",
+    "qa:query-literalness": "npx tsx scripts/qa-query-literalness.ts"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",

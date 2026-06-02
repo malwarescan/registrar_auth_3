@@ -241,6 +241,22 @@ export async function discoverDomainsFromBrief(
   }
 
   const buyableAfterRegeneration = candidates.filter((c) => canPurchaseDomain(c)).length;
+  const literalMeta = criteria
+    ? {
+        queryLiteralness: criteria.literalness.queryLiteralness,
+        briefQuality: criteria.literalness.briefQuality,
+        literalRootUsed: criteria.literalness.literalRootUsed,
+        literalRoot: criteria.literalness.literalRoot,
+        missingContextWarning: criteria.literalness.missingContextWarning,
+      }
+    : {
+        queryLiteralness: "loose_context" as const,
+        briefQuality: "weak" as const,
+        literalRootUsed: false,
+        literalRoot: null,
+        missingContextWarning: null,
+      };
+
   const generationMeta = buildRegenerationMeta({
     pass1Checked,
     pass2Checked,
@@ -249,6 +265,7 @@ export async function discoverDomainsFromBrief(
     regenerationTriggered,
     regenerationSeeds,
     lanesExpanded,
+    ...literalMeta,
   });
 
   candidates = finalizeCandidates(candidates, brief, intent, filters);

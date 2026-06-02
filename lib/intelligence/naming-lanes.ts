@@ -16,8 +16,17 @@ import {
   getLaneQuotasForIntent,
   type LaneQuotaConstraints,
 } from "@/lib/intelligence/lane-quotas";
+import {
+  generateKeywordRootCandidates,
+  generateLiteralRootBrandables,
+} from "@/lib/intelligence/keyword-root";
+import {
+  corpusHasHomeSecurityConcepts,
+  usesLiteralRoot,
+} from "@/lib/intelligence/query-literalness";
 
 const LANE_PRIORITY: NamingLane[] = [
+  "keyword_root",
   "premium_brandable",
   "service_clear",
   "saas_app",
@@ -101,19 +110,52 @@ function uniqueLabels(candidates: LabeledCandidate[]): LabeledCandidate[] {
   return dedupeLabeledCandidates(candidates);
 }
 
+function conceptOptions(criteria: NamingCriteria) {
+  return {
+    literalRoot: criteria.literalness.literalRoot,
+    keywordAnchored: usesLiteralRoot(criteria.literalness),
+  };
+}
+
+function isLiteralSeedMode(criteria: NamingCriteria): boolean {
+  return usesLiteralRoot(criteria.literalness);
+}
+
 /** Lanes enabled for this intent given quota config. */
 export function getEnabledLanesForIntent(criteria: NamingCriteria): NamingLane[] {
-  const quotas = getLaneQuotasForIntent(criteria.intent, laneConstraints(criteria));
+  const quotas = getLaneQuotasForIntent(
+    criteria.intent,
+    laneConstraints(criteria),
+    criteria.literalness
+  );
   return LANE_PRIORITY.filter((lane) => (quotas[lane] ?? 0) > 0);
 }
 
 function generatePremiumBrandableLane(criteria: NamingCriteria): LabeledCandidate[] {
   const corpus = buildCorpus(criteria);
+  const literalSeed = isLiteralSeedMode(criteria);
+  const securityCorpus = corpusHasHomeSecurityConcepts(corpus);
+
+  if (literalSeed && !securityCorpus) {
+    return uniqueLabels([
+      ...generateLiteralRootBrandables(criteria, "premium_brandable"),
+      ...filterByRejection(
+        generateRoleTemplateCandidates(corpus, {
+          lane: "premium_brandable",
+          maxPerTemplate: 6,
+        }).filter((c) =>
+          c.label.toLowerCase().includes(criteria.literalness.literalRoot!.toLowerCase())
+        ),
+        criteria
+      ),
+    ]);
+  }
+
   const fromTemplates = generateRoleTemplateCandidates(corpus, {
     lane: "premium_brandable",
     maxPerTemplate: 10,
   });
-  const concepts = extractConcepts(corpus);
+  const concepts = extractConcepts(corpus, conceptOptions(criteria));
   const vocab = expandVocabulary(concepts);
   const extra: LabeledCandidate[] = [];
 
@@ -160,11 +202,15 @@ function generatePremiumBrandableLane(criteria: NamingCriteria): LabeledCandidat
 
 function generateServiceClearLane(criteria: NamingCriteria): LabeledCandidate[] {
   const corpus = buildCorpus(criteria);
+  if (isLiteralSeedMode(criteria) && !corpusHasHomeSecurityConcepts(corpus)) {
+    return generateLiteralRootBrandables(criteria, "service_clear");
+  }
+
   const fromTemplates = generateRoleTemplateCandidates(corpus, {
     lane: "service_clear",
     maxPerTemplate: 10,
   });
-  const concepts = extractConcepts(corpus);
+  const concepts = extractConcepts(corpus, conceptOptions(criteria));
   const vocab = expandVocabulary(concepts);
   const extra: LabeledCandidate[] = [];
 
@@ -233,11 +279,15 @@ function generateServiceClearLane(criteria: NamingCriteria): LabeledCandidate[] 
 
 function generateSaasAppLane(criteria: NamingCriteria): LabeledCandidate[] {
   const corpus = buildCorpus(criteria);
+  if (isLiteralSeedMode(criteria) && !corpusHasHomeSecurityConcepts(corpus)) {
+    return generateKeywordRootCandidates(criteria, "saas_app");
+  }
+
   const fromTemplates = generateRoleTemplateCandidates(corpus, {
     lane: "saas_app",
     maxPerTemplate: 10,
   });
-  const concepts = extractConcepts(corpus);
+  const concepts = extractConcepts(corpus, conceptOptions(criteria));
   const vocab = expandVocabulary(concepts);
   const extra: LabeledCandidate[] = [];
 
@@ -292,6 +342,10 @@ function generateSeoExactPartialLane(criteria: NamingCriteria): LabeledCandidate
     ...tokenize(criteria.industry),
   ].filter((t, i, a) => a.indexOf(t) === i);
 
+  if (tokens.length === 0 && criteria.literalness.literalRoot) {
+    tokens.push(criteria.literalness.literalRoot);
+  }
+
   if (tokens.length === 0) return [];
 
   const labels = new Set<string>();
@@ -313,8 +367,14 @@ function generateSeoExactPartialLane(criteria: NamingCriteria): LabeledCandidate
 }
 
 function generateInvestorResaleLane(criteria: NamingCriteria): LabeledCandidate[] {
+  if (isLiteralSeedMode(criteria)) {
+    const rootLabels = generateKeywordRootCandidates(criteria, "investor_resale");
+    const short = generateKeywordRootCandidates(criteria, "short_punchy").slice(0, 8);
+    return uniqueLabels([...rootLabels, ...short]);
+  }
+
   const corpus = buildCorpus(criteria);
-  const concepts = extractConcepts(corpus);
+  const concepts = extractConcepts(corpus, conceptOptions(criteria));
   const vocab = expandVocabulary(concepts);
   const labels: string[] = [];
 
@@ -350,8 +410,14 @@ function generateDefensiveLane(criteria: NamingCriteria): LabeledCandidate[] {
 }
 
 function generateShortPunchyLane(criteria: NamingCriteria): LabeledCandidate[] {
+  if (isLiteralSeedMode(criteria)) {
+    return generateKeywordRootCandidates(criteria, "short_punchy").filter(
+      (c) => c.label.length <= 12
+    );
+  }
+
   const corpus = buildCorpus(criteria);
-  const concepts = extractConcepts(corpus);
+  const concepts = extractConcepts(corpus, conceptOptions(criteria));
   const vocab = expandVocabulary(concepts);
   const labels: string[] = [];
 
@@ -435,6 +501,10 @@ function generateEcommerceLane(criteria: NamingCriteria): LabeledCandidate[] {
   return uniqueLabels([...brand, ...extra]);
 }
 
+function generateKeywordRootLane(criteria: NamingCriteria): LabeledCandidate[] {
+  return generateKeywordRootCandidates(criteria, "keyword_root");
+}
+
 const LANE_GENERATORS: Record<
   NamingLane,
   (criteria: NamingCriteria) => LabeledCandidate[]
@@ -448,20 +518,27 @@ const LANE_GENERATORS: Record<
   defensive: generateDefensiveLane,
   short_punchy: generateShortPunchyLane,
   premium_upgrade: generatePremiumUpgradeLane,
+  keyword_root: generateKeywordRootLane,
 };
 
 function shouldAllowSeoLane(criteria: NamingCriteria): boolean {
   return (
     criteria.intent === "seo_content" ||
     criteria.constraints.preferExactMatch ||
-    criteria.constraints.preferKeywordSlug
+    criteria.constraints.preferKeywordSlug ||
+    criteria.literalness.queryLiteralness === "exact_partial_required" ||
+    criteria.literalness.queryLiteralness === "keyword_required"
   );
 }
 
 /** Expand vocabulary and rerun brandable/service lanes when output is thin. */
 function expandAndRerunBrandableLanes(criteria: NamingCriteria): LabeledCandidate[] {
+  if (isLiteralSeedMode(criteria)) {
+    return generateKeywordRootCandidates(criteria, "premium_brandable");
+  }
+
   const corpus = buildCorpus(criteria);
-  const concepts = extractConcepts(corpus);
+  const concepts = extractConcepts(corpus, conceptOptions(criteria));
   const vocab = expandVocabulary(concepts);
   const extra: LabeledCandidate[] = [];
 
@@ -514,7 +591,7 @@ export function generateLaneCandidates(criteria: NamingCriteria): LabeledCandida
 
   all = filterByRejection(all, criteria);
 
-  if (all.length < 8 && !shouldAllowSeoLane(criteria)) {
+  if (all.length < 8 && !shouldAllowSeoLane(criteria) && !isLiteralSeedMode(criteria)) {
     all = uniqueLabels([...all, ...expandAndRerunBrandableLanes(criteria)]);
   }
 
@@ -549,8 +626,12 @@ export function dedupeLabeledCandidates(candidates: LabeledCandidate[]): Labeled
   return [...byLabel.values()];
 }
 
-function scoreLabelForLane(label: string): number {
+function scoreLabelForLane(label: string, criteria?: NamingCriteria): number {
   const norm = label.toLowerCase().replace(/-/g, "");
+  const root = criteria?.literalness.literalRoot?.toLowerCase();
+
+  if (root && norm.includes(root)) return -2;
+
   const qualityBoost = new Set([
     "guardnest",
     "securehaven",
@@ -565,6 +646,14 @@ function scoreLabelForLane(label: string): number {
     "havenguard",
   ]);
   if (qualityBoost.has(norm)) return -1;
+
+  if (root && criteria && isLiteralSeedMode(criteria)) {
+    const securityLike = /guard|nest|haven|sentry|shield|home|lock|secure/.test(norm);
+    if (securityLike && !corpusHasHomeSecurityConcepts(criteria.description)) {
+      return 8;
+    }
+  }
+
   const hasCompound = /[a-z][A-Z].*[A-Z]/.test(label) || /^[A-Z][a-z]+[A-Z]/.test(label);
   if (hasCompound && label.length >= 8 && label.length <= 14) return 0;
   if (/^[A-Z][a-z]+[A-Z]/.test(label)) return 1;
@@ -577,7 +666,11 @@ export function prioritizeCandidatesByLane(
   criteria: NamingCriteria,
   totalBudget = 45
 ): LabeledCandidate[] {
-  const quotas = getLaneQuotasForIntent(criteria.intent, laneConstraints(criteria));
+  const quotas = getLaneQuotasForIntent(
+    criteria.intent,
+    laneConstraints(criteria),
+    criteria.literalness
+  );
   const budget = allocateLabelBudget(quotas, totalBudget);
   const byLane = new Map<NamingLane, LabeledCandidate[]>();
 
@@ -592,7 +685,7 @@ export function prioritizeCandidatesByLane(
     const max = budget[lane] ?? 0;
     if (max <= 0) continue;
     const pool = [...(byLane.get(lane) ?? [])].sort(
-      (a, b) => scoreLabelForLane(a.label) - scoreLabelForLane(b.label)
+      (a, b) => scoreLabelForLane(a.label, criteria) - scoreLabelForLane(b.label, criteria)
     );
     result.push(...pool.slice(0, max));
   }

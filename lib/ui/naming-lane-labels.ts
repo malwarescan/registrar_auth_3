@@ -7,6 +7,7 @@ const LANE_LABELS: Record<NamingLane, string> = {
   saas_app: "SaaS / app",
   seo_exact_partial: "SEO fit",
   investor_resale: "Investor / resale",
+  keyword_root: "Keyword root",
   defensive: "Defensive",
   short_punchy: "Short / punchy",
   premium_upgrade: "Premium upgrade",

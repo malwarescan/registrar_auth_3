@@ -57,7 +57,10 @@ export function BenchmarkComparison({
               <button
                 key={label}
                 type="button"
-                onClick={() => onOptimizeRequest?.(dim === "trust" ? "brand" : dim)}
+                onClick={() => {
+                  onOptimizeRequest?.(dim === "trust" ? "brand" : dim);
+                  onSelectDomain?.(candidate.domain);
+                }}
                 className="rounded-lg border border-[var(--outline-variant)] bg-white px-3 py-2 text-left hover:border-[var(--secondary)]"
               >
                 <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--secondary)]">{label}</p>

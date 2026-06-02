@@ -16,6 +16,12 @@
   --secondary-dark: #0051d5;
   --on-primary: #ffffff;
 
+  /* Radar logo — matches namesilo_radar.png ring + glow palette */
+  --radar-navy: #101828;
+  --radar-accent: #3b82f6;
+  --radar-glow: #93c5fd;
+  --radar-glow-soft: #bfdbfe;
+
   /* Signals */
   --success: #10b981;
   --success-container: #d1fae5;

@@ -35,8 +35,17 @@ export function SearchPageClient() {
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AnalyzeResponse | null>(null);
   const [benchmarkDomain, setBenchmarkDomain] = useState<string | null>(null);
+  const [optimizeMode, setOptimizeMode] = useState<OptimizeMode>("overall");
 
   const weights = useMemo(() => deriveWeightsFromBrief(brief), [brief]);
+
+  const handleOptimizeChange = useCallback((mode: OptimizeMode) => {
+    setOptimizeMode(mode);
+    setBrief((b) => ({
+      ...b,
+      priorityWeights: { ...OPTIMIZE_PRESETS[mode] },
+    }));
+  }, []);
 
   const analyze = useCallback(
     async (overrideBrief?: DomainBrief) => {
@@ -47,6 +56,7 @@ export function SearchPageClient() {
       setLoading(true);
       setError(null);
       setBenchmarkDomain(null);
+      setOptimizeMode("overall");
       try {
         const res = await fetch("/api/analyze", {
           method: "POST",
@@ -100,8 +110,8 @@ export function SearchPageClient() {
 
   const rightSidebar = hasResults ? (
     <SignalControls
-      optimize="overall"
-      onOptimizeChange={() => {}}
+      optimize={optimizeMode}
+      onOptimizeChange={handleOptimizeChange}
       weights={weights}
       onWeightChange={(key, value) =>
         setBrief((b) => ({
@@ -171,6 +181,8 @@ export function SearchPageClient() {
               <SignalDashboard
                 data={data}
                 weights={weights}
+                optimize={optimizeMode}
+                onOptimizeChange={handleOptimizeChange}
                 benchmarkDomain={benchmarkDomain}
                 onBenchmarkChange={setBenchmarkDomain}
                 onWeightChange={(key, value) =>
@@ -186,7 +198,7 @@ export function SearchPageClient() {
               <NoStrongMatches
                 query={data.query}
                 onRetryPath={(mode: OptimizeMode) => {
-                  setBrief((b) => ({ ...b, priorityWeights: { ...OPTIMIZE_PRESETS[mode] } }));
+                  handleOptimizeChange(mode);
                   void analyze();
                 }}
               />

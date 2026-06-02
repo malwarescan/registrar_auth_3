@@ -31,6 +31,8 @@ type ResultsTab = "dashboard" | "domains" | "compare" | "details";
 type SignalDashboardProps = {
   data: AnalyzeResponse;
   weights: SignalWeights;
+  optimize?: OptimizeMode;
+  onOptimizeChange?: (mode: OptimizeMode) => void;
   benchmarkDomain?: string | null;
   onBenchmarkChange?: (domain: string | null) => void;
   onWeightChange?: (key: keyof SignalWeights, value: number) => void;
@@ -46,6 +48,8 @@ const RESULT_TABS: { id: ResultsTab; label: string }[] = [
 export function SignalDashboard({
   data,
   weights,
+  optimize = "overall",
+  onOptimizeChange,
   benchmarkDomain,
   onBenchmarkChange,
   onWeightChange,
@@ -370,6 +374,10 @@ export function SignalDashboard({
           deltas={benchmarkDeltas}
           candidates={dashboard.rankedResults}
           onSelectDomain={setActiveDomain}
+          onOptimizeRequest={(mode) => {
+            onOptimizeChange?.(mode);
+            setActiveTab("domains");
+          }}
         />
       )}
 
@@ -469,8 +477,8 @@ export function SignalDashboard({
 
       <div className="xl:hidden">
         <SignalControls
-          optimize="overall"
-          onOptimizeChange={() => {}}
+          optimize={optimize}
+          onOptimizeChange={onOptimizeChange ?? (() => {})}
           weights={weights}
           onWeightChange={onWeightChange ?? (() => {})}
           shortlist={shortlist}

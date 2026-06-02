@@ -1,6 +1,10 @@
 import type { BuyingIntent, DomainBrief } from "@/lib/types/domain-brief";
 import { resolveBuyingIntent } from "@/lib/types/domain-brief";
 import { analyzeQueryContext } from "@/lib/intelligence/query-context";
+import {
+  resolveQueryLiteralness,
+  type LiteralnessPolicy,
+} from "@/lib/intelligence/query-literalness";
 
 const STOP = new Set([
   "a", "an", "the", "for", "and", "or", "of", "to", "in", "at", "on", "with", "by",
@@ -66,7 +70,11 @@ export type NamingCriteria = {
   hasSubject: boolean;
   /** Description includes a city/region ("in Pasadena", location field, etc.). */
   isLocalContext: boolean;
+  /** Query literalness policy for generation and ranking context. */
+  literalness: LiteralnessPolicy;
 };
+
+export type { LiteralnessPolicy };
 
 function tokenize(text: string): string[] {
   return text
@@ -247,6 +255,7 @@ export function extractNamingCriteria(brief: DomainBrief): NamingCriteria | null
     Boolean(brief.industry.trim()) ||
     Boolean(brief.productService.trim());
   const isLocalContext = Boolean(locationCity) || context.isLocalIntent;
+  const literalness = resolveQueryLiteralness(brief);
 
   return {
     intent,
@@ -269,5 +278,6 @@ export function extractNamingCriteria(brief: DomainBrief): NamingCriteria | null
     tldPreference: deriveTlds(brief, intent, constraints),
     hasSubject,
     isLocalContext,
+    literalness,
   };
 }

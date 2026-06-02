@@ -13,6 +13,7 @@ import {
 } from "@/lib/intelligence/semantic-expansion";
 import { canPurchaseDomain, isBenchmarkOnly } from "@/lib/domains/availability";
 import { parseDomain } from "@/lib/intelligence/parse-domain";
+import type { BriefQuality, QueryLiteralness } from "@/lib/intelligence/query-literalness";
 
 export const MAX_REGENERATION_CHECKS = 40;
 export const MAX_REGENERATION_SEEDS = 3;
@@ -49,6 +50,11 @@ export type GenerationMeta = {
   regenerationSeeds: string[];
   generationPassesUsed: number;
   lanesExpanded: NamingLane[];
+  queryLiteralness: QueryLiteralness;
+  briefQuality: BriefQuality;
+  literalRootUsed: boolean;
+  literalRoot: string | null;
+  missingContextWarning?: string | null;
 };
 
 export type RegenerationTriggerInput = {
@@ -328,6 +334,11 @@ export function buildRegenerationMeta(input: {
   regenerationTriggered: boolean;
   regenerationSeeds: string[];
   lanesExpanded: NamingLane[];
+  queryLiteralness: QueryLiteralness;
+  briefQuality: BriefQuality;
+  literalRootUsed: boolean;
+  literalRoot: string | null;
+  missingContextWarning?: string | null;
 }): GenerationMeta {
   return {
     pass1Checked: input.pass1Checked,
@@ -338,6 +349,11 @@ export function buildRegenerationMeta(input: {
     regenerationSeeds: input.regenerationSeeds,
     generationPassesUsed: input.regenerationTriggered ? 2 : 1,
     lanesExpanded: input.lanesExpanded,
+    queryLiteralness: input.queryLiteralness,
+    briefQuality: input.briefQuality,
+    literalRootUsed: input.literalRootUsed,
+    literalRoot: input.literalRoot,
+    ...(input.missingContextWarning ? { missingContextWarning: input.missingContextWarning } : {}),
   };
 }
 

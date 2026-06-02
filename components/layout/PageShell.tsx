@@ -17,7 +17,7 @@ export function PageShell({
   children,
   rightSidebar,
   headerTitle,
-  showLogo,
+  showLogo = true,
   showSearch,
   backHref,
   hideNav,

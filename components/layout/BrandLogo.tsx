@@ -1,5 +1,5 @@
 import Image from "next/image";
-import siloradarLogo from "@/siloradar.png";
+import namesiloRadarLogo from "@/namesilo_radar.png";
 import { cn } from "@/lib/utils";
 
 type BrandLogoProps = {
@@ -14,22 +14,25 @@ export function BrandLogo({ className, priority = false, pulsing = true }: Brand
   return (
     <span
       className={cn(
-        "relative inline-flex aspect-square shrink-0 items-center justify-center",
+        "brand-logo relative inline-flex aspect-square shrink-0 items-center justify-center overflow-visible",
         sizeClass
       )}
     >
       {pulsing && (
         <>
-          <span className="signal-pulse-ring signal-pulse-ring-inner" aria-hidden />
+          <span className="brand-logo-pulse signal-pulse-ring signal-pulse-ring-inner" aria-hidden />
           <span
-            className="signal-pulse-ring signal-pulse-ring-outer signal-pulse-ring-delay"
+            className="brand-logo-pulse signal-pulse-ring signal-pulse-ring-outer signal-pulse-ring-delay"
             aria-hidden
           />
         </>
       )}
       <Image
-        src={siloradarLogo}
+        src={namesiloRadarLogo}
         alt="NameSilo Intelligence"
+        width={namesiloRadarLogo.width}
+        height={namesiloRadarLogo.height}
+        sizes="(max-width: 1023px) 36px, 40px"
         className="relative z-10 aspect-square h-full w-full object-contain"
         priority={priority}
       />

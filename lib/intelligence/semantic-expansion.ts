@@ -65,7 +65,10 @@ function capitalize(word: string): string {
 }
 
 /** Detect semantic roles and category keywords from a brief corpus string. */
-export function extractConcepts(corpus: string): ExtractedConcepts {
+export function extractConcepts(
+  corpus: string,
+  options?: { literalRoot?: string | null; keywordAnchored?: boolean }
+): ExtractedConcepts {
   const roles = new Set<SemanticRole>();
   for (const { role, pattern } of CONCEPT_TRIGGERS) {
     if (pattern.test(corpus)) roles.add(role);
@@ -78,8 +81,14 @@ export function extractConcepts(corpus: string): ExtractedConcepts {
     roles.add("trust");
   }
   if (roles.size === 0) {
-    roles.add("protection");
-    roles.add("place");
+    if (options?.keywordAnchored && options.literalRoot) {
+      roles.add("tech");
+      roles.add("trust");
+      roles.add("alert");
+    } else {
+      roles.add("protection");
+      roles.add("place");
+    }
   }
   return {
     roles: [...roles],

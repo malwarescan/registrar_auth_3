@@ -10,7 +10,8 @@ export type NamingLane =
   | "investor_resale"
   | "defensive"
   | "short_punchy"
-  | "premium_upgrade";
+  | "premium_upgrade"
+  | "keyword_root";
 
 /** 1 = initial generation pass, 2 = availability-aware regeneration / refinement. */
 export type GenerationPass = 1 | 2;
@@ -43,4 +44,5 @@ export const ALL_NAMING_LANES: NamingLane[] = [
   "defensive",
   "short_punchy",
   "premium_upgrade",
+  "keyword_root",
 ];
