@@ -4,7 +4,15 @@ import { discoverDomainsFromBrief, type GenerationMeta } from "@/lib/intelligenc
 import { buildAnalysisQuery, deriveWeightsFromBrief } from "@/lib/intelligence/brief-to-weights";
 import { compositeScore, scoreDomain } from "@/lib/intelligence/score-domain";
 import { resolveBuyingIntent } from "@/lib/types/domain-brief";
-import { searchAuctionListings } from "@/lib/namesilo/public-api-client";
+import {
+  checkRegisterAvailability,
+  getTldPrices,
+  searchAuctionListings,
+} from "@/lib/namesilo/public-api-client";
+import {
+  resolveRegistrationAvailabilityStatus,
+  resolveRegistrationPrice,
+} from "@/lib/namesilo/pricing";
 
 function applyFilters(candidates: DomainCandidate[], filters?: AnalyzeFilters): DomainCandidate[] {
   let filtered = candidates;
@@ -97,22 +105,34 @@ export async function getMarketplaceListing(
   domain: string,
   query = ""
 ): Promise<DomainCandidate | null> {
-  const { getRegistrationPrice, checkRegisterAvailability } = await import(
-    "@/lib/namesilo/public-api-client"
-  );
-
   const normalized = domain.trim().toLowerCase();
   if (!normalized.includes(".")) return null;
 
-  const [availability, tldPrice] = await Promise.all([
+  const apiConfigured = Boolean(process.env.NAMESILO_API_KEY);
+  const [availabilityMap, tldPrices] = await Promise.all([
     checkRegisterAvailability([normalized]),
-    getRegistrationPrice(normalized.split(".").pop() ?? "com"),
+    getTldPrices(),
   ]);
 
-  const available = availability[normalized] ?? false;
+  const availabilityEntry = availabilityMap[normalized];
+  const tld = normalized.split(".").pop() ?? "com";
+  const available = availabilityEntry?.available ?? false;
+
   if (available) {
-    const price = tldPrice ?? (normalized.endsWith(".com") ? 10.99 : 12.99);
-    return scoreDomain(normalized, query || normalized, price, "registration", true);
+    const resolvedPrice = resolveRegistrationPrice(normalized, availabilityEntry, tldPrices);
+    const price = resolvedPrice ?? 0;
+    const scored = scoreDomain(normalized, query || normalized, price, "registration", true);
+    return {
+      ...scored,
+      availabilityStatus: resolveRegistrationAvailabilityStatus(
+        true,
+        resolvedPrice,
+        tld,
+        tldPrices,
+        apiConfigured,
+        false
+      ),
+    };
   }
 
   const auctions = await searchAuctionListings(query || normalized.split(".")[0], { pageSize: 50 });
@@ -121,5 +141,10 @@ export async function getMarketplaceListing(
     return scoreDomain(normalized, query || normalized, match.price, "marketplace", true);
   }
 
-  return scoreDomain(normalized, query || normalized, tldPrice ?? 99, "registration", false);
+  const referencePrice = resolveRegistrationPrice(normalized, availabilityEntry, tldPrices) ?? 0;
+  const scored = scoreDomain(normalized, query || normalized, referencePrice, "registration", false);
+  return {
+    ...scored,
+    availabilityStatus: apiConfigured ? "taken" : "unknown",
+  };
 }

@@ -16,14 +16,15 @@ export async function GET(request: Request, { params }: RouteParams) {
     let candidate = await getMarketplaceListing(domain, query);
     if (!candidate) {
       candidate = {
-        ...scoreDomain(domain, query, 49.99, "registration", false),
+        ...scoreDomain(domain, query, 0, "registration", false),
         availabilityStatus: "unknown",
         available: false,
       };
     }
 
-    const availability = await checkRegisterAvailability([domain]);
-    const isRegistrationAvailable = availability[domain] ?? candidate.available;
+    const availabilityMap = await checkRegisterAvailability([domain]);
+    const availabilityEntry = availabilityMap[domain];
+    const isRegistrationAvailable = availabilityEntry?.available ?? candidate.available;
     candidate = {
       ...candidate,
       available: isRegistrationAvailable,

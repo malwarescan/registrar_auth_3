@@ -1,5 +1,12 @@
+import type { DomainAvailability } from "@/lib/namesilo/pricing";
+import { parsePrice } from "@/lib/namesilo/pricing";
+
+export type { DomainAvailability } from "@/lib/namesilo/pricing";
+
 const SANDBOX_BASE = "https://sandbox.namesilo.com/api";
 const PROD_BASE = "https://www.namesilo.com/api";
+
+const GET_PRICES_METADATA_KEYS = new Set(["code", "detail", "tld"]);
 
 function getBaseUrl(): string {
   return process.env.NAMESILO_API_SANDBOX === "true" ? SANDBOX_BASE : PROD_BASE;
@@ -15,6 +22,7 @@ type NameSiloReply = {
   available?: unknown;
   unavailable?: unknown;
   invalid?: unknown;
+  tld?: unknown;
   [key: string]: unknown;
 };
 
@@ -52,7 +60,6 @@ function extractDomainName(entry: unknown): string | null {
   if (typeof obj.name === "string") return obj.name;
   if (typeof obj["#text"] === "string") return obj["#text"];
 
-  // JSON converted from XML sometimes uses the domain as a single key
   const keys = Object.keys(obj).filter((k) => !k.startsWith("@") && k !== "price" && k !== "premium");
   if (keys.length === 1 && typeof obj[keys[0]] !== "object") {
     return keys[0];
@@ -73,57 +80,77 @@ function collectDomainEntries(section: unknown): unknown[] {
   return Object.values(obj);
 }
 
+function parseTldRegistrationPrice(data: unknown): number | null {
+  if (!data || typeof data !== "object") return null;
+  const registration = (data as Record<string, unknown>).registration;
+  return parsePrice(registration);
+}
+
 function parseAvailabilitySection(
   section: unknown,
   status: boolean,
-  result: Record<string, boolean>
+  result: Record<string, DomainAvailability>
 ): void {
   for (const entry of collectDomainEntries(section)) {
     const domain = extractDomainName(entry);
-    if (domain) {
-      result[domain.toLowerCase()] = status;
-    }
+    if (!domain) continue;
+
+    const price =
+      status && entry && typeof entry === "object"
+        ? parsePrice((entry as Record<string, unknown>).price)
+        : null;
+
+    result[domain.toLowerCase()] = { available: status, price };
   }
+}
+
+function emptyAvailability(domains: string[]): Record<string, DomainAvailability> {
+  const result: Record<string, DomainAvailability> = {};
+  for (const d of domains) {
+    result[d] = { available: false, price: null };
+  }
+  return result;
 }
 
 function parseAvailabilityReply(
   reply: NameSiloReply | null,
   domains: string[]
-): Record<string, boolean> {
-  const result: Record<string, boolean> = {};
+): Record<string, DomainAvailability> {
+  const byLower: Record<string, DomainAvailability> = {};
   for (const d of domains) {
-    result[d] = true;
+    byLower[d.toLowerCase()] = { available: false, price: null };
   }
 
-  if (!reply) return result;
+  if (!reply) return byLower;
 
-  parseAvailabilitySection(reply.available, true, result);
-  parseAvailabilitySection(reply.unavailable, false, result);
-  parseAvailabilitySection(reply.invalid, false, result);
+  parseAvailabilitySection(reply.available, true, byLower);
+  parseAvailabilitySection(reply.unavailable, false, byLower);
+  parseAvailabilitySection(reply.invalid, false, byLower);
 
-  // Legacy flat object: { "example.com": "available" }
   if (reply.available && typeof reply.available === "object" && !Array.isArray(reply.available)) {
     const flat = reply.available as Record<string, unknown>;
     if (!("domain" in flat)) {
       for (const [domain, status] of Object.entries(flat)) {
         if (typeof status === "string") {
-          result[domain.toLowerCase()] = status.toLowerCase() === "available";
+          byLower[domain.toLowerCase()] = {
+            available: status.toLowerCase() === "available",
+            price: null,
+          };
         }
       }
     }
   }
 
-  // Normalize keys back to original domain casing from request
-  const normalized: Record<string, boolean> = {};
+  const normalized: Record<string, DomainAvailability> = {};
   for (const d of domains) {
-    normalized[d] = result[d.toLowerCase()] ?? true;
+    normalized[d] = byLower[d.toLowerCase()] ?? { available: false, price: null };
   }
   return normalized;
 }
 
 export async function checkRegisterAvailability(
   domains: string[]
-): Promise<Record<string, boolean>> {
+): Promise<Record<string, DomainAvailability>> {
   if (domains.length === 0) return {};
 
   try {
@@ -133,27 +160,34 @@ export async function checkRegisterAvailability(
     return parseAvailabilityReply(reply, domains);
   } catch (err) {
     console.warn("[namesilo] checkRegisterAvailability failed:", err);
-    const fallback: Record<string, boolean> = {};
-    for (const d of domains) fallback[d] = true;
-    return fallback;
+    return emptyAvailability(domains);
   }
 }
 
 export async function getTldPrices(): Promise<Record<string, number>> {
-  const reply = await namesiloRequest<NameSiloReply & { tld?: Record<string, { registration?: string }> }>(
-    "getPrices"
-  );
+  const reply = await namesiloRequest<NameSiloReply>("getPrices");
   const map: Record<string, number> = {};
-  if (!reply?.tld) return map;
-  for (const [tld, data] of Object.entries(reply.tld)) {
-    if (data?.registration) map[tld] = parseFloat(data.registration);
+  if (!reply || reply.code !== "300") return map;
+
+  if (reply.tld && typeof reply.tld === "object") {
+    for (const [tld, data] of Object.entries(reply.tld as Record<string, unknown>)) {
+      const price = parseTldRegistrationPrice(data);
+      if (price != null) map[tld.toLowerCase()] = price;
+    }
   }
+
+  for (const [key, value] of Object.entries(reply)) {
+    if (GET_PRICES_METADATA_KEYS.has(key)) continue;
+    const price = parseTldRegistrationPrice(value);
+    if (price != null) map[key.toLowerCase()] = price;
+  }
+
   return map;
 }
 
 export async function getRegistrationPrice(tld: string): Promise<number | null> {
   const prices = await getTldPrices();
-  const key = tld.replace(".", "");
+  const key = tld.replace(".", "").toLowerCase();
   return prices[key] ?? null;
 }
 
@@ -163,15 +197,6 @@ type AuctionListing = {
   buyNow?: number;
 };
 
-function parseAuctionPrice(value: unknown): number | null {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string") {
-    const n = parseFloat(value.replace(/[^0-9.]/g, ""));
-    return Number.isFinite(n) ? n : null;
-  }
-  return null;
-}
-
 function extractAuctionDomain(entry: unknown): string | null {
   if (typeof entry === "string") return entry.trim().toLowerCase() || null;
   if (!entry || typeof entry !== "object") return null;
@@ -179,7 +204,7 @@ function extractAuctionDomain(entry: unknown): string | null {
   for (const key of ["domain", "domainName", "name"]) {
     if (typeof obj[key] === "string") return (obj[key] as string).trim().toLowerCase();
   }
-  return extractDomainName(entry);
+  return extractDomainName(entry)?.toLowerCase() ?? null;
 }
 
 function collectAuctionEntries(reply: NameSiloReply | null): unknown[] {
@@ -222,14 +247,14 @@ export async function searchAuctionListings(
 
     const obj = typeof entry === "object" && entry ? (entry as Record<string, unknown>) : {};
     const price =
-      parseAuctionPrice(obj.buyNow) ??
-      parseAuctionPrice(obj.currentBid) ??
-      parseAuctionPrice(obj.price) ??
-      parseAuctionPrice(obj.openingBid) ??
-      99;
+      parsePrice(obj.buyNow) ??
+      parsePrice(obj.currentBid) ??
+      parsePrice(obj.price) ??
+      parsePrice(obj.openingBid);
 
+    if (price == null) continue;
     if (options?.maxPrice && price > options.maxPrice) continue;
-    listings.push({ domain, price, buyNow: parseAuctionPrice(obj.buyNow) ?? undefined });
+    listings.push({ domain, price, buyNow: parsePrice(obj.buyNow) ?? undefined });
   }
 
   return listings;

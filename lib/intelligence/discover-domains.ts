@@ -15,7 +15,12 @@ import { OPTIMIZE_PRESETS } from "@/lib/types/domain";
 import {
   checkRegisterAvailability,
   getTldPrices,
+  type DomainAvailability,
 } from "@/lib/namesilo/public-api-client";
+import {
+  resolveRegistrationAvailabilityStatus,
+  resolveRegistrationPrice,
+} from "@/lib/namesilo/pricing";
 import { getSeedCandidates } from "@/lib/intelligence/seed-data";
 import { canPurchaseDomain } from "@/lib/domains/availability";
 import {
@@ -41,26 +46,9 @@ function isDemoQuery(query: string): boolean {
   return DEMO_QUERY_PATTERN.test(query);
 }
 
-function defaultPriceForTld(tld: string, priceMap: Record<string, number>): number {
-  return priceMap[tld] ?? (tld === "com" ? 10.99 : 12.99);
-}
-
-function availabilityStatus(
-  available: boolean,
-  priceType: "registration" | "marketplace",
-  apiConfigured: boolean,
-  hadApiError: boolean
-): DomainCandidate["availabilityStatus"] {
-  if (hadApiError) return apiConfigured ? "api_error" : "idea_only";
-  if (!apiConfigured) return "idea_only";
-  if (!available) return "taken";
-  if (priceType === "marketplace") return "marketplace_available";
-  return "available";
-}
-
 function scoreDomainEntries(
   entries: DomainEntry[],
-  availability: Record<string, boolean>,
+  availabilityMap: Record<string, DomainAvailability>,
   priceMap: Record<string, number>,
   query: string,
   intent: ReturnType<typeof resolveBuyingIntent>,
@@ -70,16 +58,29 @@ function scoreDomainEntries(
 ): DomainCandidate[] {
   return entries.map((entry) => {
     const { domain } = entry;
-    const tld = domain.split(".").pop() ?? "com";
-    const available = apiConfigured && !hadApiError ? (availability[domain] ?? false) : false;
-    const price = defaultPriceForTld(tld, priceMap);
+    const tld = (domain.split(".").pop() ?? "com").toLowerCase();
+    const availabilityEntry = availabilityMap[domain];
+    const available =
+      apiConfigured && !hadApiError ? (availabilityEntry?.available ?? false) : false;
+    const resolvedPrice =
+      apiConfigured && !hadApiError
+        ? resolveRegistrationPrice(domain, availabilityEntry, priceMap)
+        : null;
+    const price = resolvedPrice ?? 0;
     const scored = scoreDomain(domain, query, price, "registration", available, {
       intent,
       brandablePreferred: intent !== "seo_content" && !brief.requirements.includes("exact match"),
     });
     return {
       ...scored,
-      availabilityStatus: availabilityStatus(available, "registration", apiConfigured, hadApiError),
+      availabilityStatus: resolveRegistrationAvailabilityStatus(
+        available,
+        resolvedPrice,
+        tld,
+        priceMap,
+        apiConfigured,
+        hadApiError
+      ),
       ...(entry.namingLane ? { namingLane: entry.namingLane } : {}),
       ...(entry.generationPass ? { generationPass: entry.generationPass } : {}),
       ...(entry.seedDomain ? { seedDomain: entry.seedDomain } : {}),
@@ -171,13 +172,13 @@ export async function discoverDomainsFromBrief(
   const apiConfigured = Boolean(process.env.NAMESILO_API_KEY);
   const pass1Checked = pass1Entries.length;
 
-  let availability: Record<string, boolean> = {};
+  let availabilityMap: Record<string, DomainAvailability> = {};
   let priceMap: Record<string, number> = {};
   let hadApiError = false;
 
   if (apiConfigured) {
     try {
-      [availability, priceMap] = await Promise.all([
+      [availabilityMap, priceMap] = await Promise.all([
         checkRegisterAvailability(pass1Entries.map((e) => e.domain)),
         getTldPrices(),
       ]);
@@ -189,7 +190,7 @@ export async function discoverDomainsFromBrief(
 
   let candidates = scoreDomainEntries(
     pass1Entries,
-    availability,
+    availabilityMap,
     priceMap,
     query,
     intent,

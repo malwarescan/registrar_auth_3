@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import type { DomainCandidate } from "@/lib/types/domain";
 import { useShortlistContext } from "@/lib/shortlist/shortlist-context";
 import { domainToSlug } from "@/lib/shortlist/use-shortlist";
+import { shouldShowPrice, getAvailabilityLabel } from "@/lib/domains/availability";
 
 type DomainCardProps = {
   candidate: DomainCandidate;
@@ -15,6 +16,7 @@ type DomainCardProps = {
 export function DomainCard({ candidate }: DomainCardProps) {
   const { add, isShortlisted } = useShortlistContext();
   const shortlisted = isShortlisted(candidate.domain);
+  const showPrice = shouldShowPrice(candidate);
 
   return (
     <Card className="space-y-4">
@@ -25,7 +27,9 @@ export function DomainCard({ candidate }: DomainCardProps) {
           </h3>
         </Link>
         <span className="text-lg font-bold tabular-nums text-[var(--on-surface)]">
-          ${candidate.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+          {showPrice
+            ? `$${candidate.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+            : getAvailabilityLabel(candidate.availabilityStatus)}
         </span>
       </div>
 

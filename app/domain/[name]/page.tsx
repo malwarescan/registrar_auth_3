@@ -27,7 +27,7 @@ async function getDomainData(slug: string, query: string) {
   const listing = await getMarketplaceListing(domain, query);
   return (
     listing ?? {
-      ...scoreDomain(domain, query, 49.99, "registration", false),
+      ...scoreDomain(domain, query, 0, "registration", false),
       availabilityStatus: "unknown" as const,
       available: false,
     }

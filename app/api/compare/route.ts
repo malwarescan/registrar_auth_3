@@ -16,7 +16,13 @@ export async function POST(request: Request) {
     const candidates = await Promise.all(
       domains.map(async (d) => {
         const listing = await getMarketplaceListing(d, query);
-        return listing ?? scoreDomain(d, query, 99, "marketplace", true);
+        return (
+          listing ?? {
+            ...scoreDomain(d, query, 0, "registration", false),
+            availabilityStatus: "unknown" as const,
+            available: false,
+          }
+        );
       })
     );
 
