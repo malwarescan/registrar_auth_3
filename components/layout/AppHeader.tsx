@@ -27,10 +27,10 @@ export function AppHeader({
           {showLogo ? (
             <Link
               href="/"
-              aria-label="NameSilo Intelligence home"
-              className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center overflow-visible lg:hidden"
+              aria-label="NameMog home"
+              className="inline-flex shrink-0 items-center py-0.5 lg:hidden"
             >
-              <BrandLogo className="h-9 w-9" priority />
+              <BrandLogo variant="header" priority />
             </Link>
           ) : (
             <h1 className="truncate text-base font-bold text-[var(--theme-primary)] md:text-lg lg:hidden">

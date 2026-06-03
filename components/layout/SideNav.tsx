@@ -18,9 +18,9 @@ export function SideNav() {
 
   return (
     <aside className="fixed inset-y-0 left-0 z-50 hidden w-[var(--sidebar-width)] flex-col border-r border-[var(--outline-variant)] bg-white lg:flex">
-      <div className="flex min-h-[112px] items-center justify-center border-b border-[var(--outline-variant)] px-6 py-6">
-        <Link href="/" className="block">
-          <BrandLogo className="h-10 w-10" priority />
+      <div className="flex items-center justify-center border-b border-[var(--outline-variant)] px-6 py-5">
+        <Link href="/" className="inline-flex items-center" aria-label="NameMog home">
+          <BrandLogo variant="sidebar" priority />
         </Link>
       </div>
       <nav className="flex flex-1 flex-col gap-1 p-3">

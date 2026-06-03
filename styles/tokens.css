@@ -16,12 +16,6 @@
   --secondary-dark: #0051d5;
   --on-primary: #ffffff;
 
-  /* Radar logo — matches namesilo_radar.png ring + glow palette */
-  --radar-navy: #101828;
-  --radar-accent: #3b82f6;
-  --radar-glow: #93c5fd;
-  --radar-glow-soft: #bfdbfe;
-
   /* Signals */
   --success: #10b981;
   --success-container: #d1fae5;
@@ -49,6 +43,10 @@
   --gutter: 20px;
   --container-max: 1280px;
   --sidebar-width: 240px;
+  --logo-height-header: 24px;
+  --logo-height-sidebar: 34px;
+  --logo-max-width-header: 124px;
+  --logo-max-width-sidebar: 145px;
   --control-panel-width: 300px;
 
   /* Radius */

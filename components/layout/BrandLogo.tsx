@@ -1,40 +1,40 @@
 import Image from "next/image";
-import namesiloRadarLogo from "@/namesilo_radar.png";
+import nameMogLogo from "@/NameMog_transparent.png";
 import { cn } from "@/lib/utils";
 
+/** Intrinsic wordmark aspect ratio (1381×349). */
+const LOGO_ASPECT = nameMogLogo.width / nameMogLogo.height;
+
+export type BrandLogoVariant = "header" | "sidebar";
+
 type BrandLogoProps = {
+  /** Standardized placement — avoids ad-hoc className size drift. */
+  variant?: BrandLogoVariant;
   className?: string;
   priority?: boolean;
-  pulsing?: boolean;
 };
 
-export function BrandLogo({ className, priority = false, pulsing = true }: BrandLogoProps) {
-  const sizeClass = className ?? "h-8 w-8";
+const VARIANT_CLASS: Record<BrandLogoVariant, string> = {
+  header: "brand-logo brand-logo--header",
+  sidebar: "brand-logo brand-logo--sidebar",
+};
 
+export function BrandLogo({
+  variant = "sidebar",
+  className,
+  priority = false,
+}: BrandLogoProps) {
   return (
-    <span
-      className={cn(
-        "brand-logo relative inline-flex aspect-square shrink-0 items-center justify-center overflow-visible",
-        sizeClass
-      )}
-    >
-      {pulsing && (
-        <>
-          <span className="brand-logo-pulse signal-pulse-ring signal-pulse-ring-inner" aria-hidden />
-          <span
-            className="brand-logo-pulse signal-pulse-ring signal-pulse-ring-outer signal-pulse-ring-delay"
-            aria-hidden
-          />
-        </>
-      )}
+    <span className={cn(VARIANT_CLASS[variant], className)}>
       <Image
-        src={namesiloRadarLogo}
-        alt="NameSilo Intelligence"
-        width={namesiloRadarLogo.width}
-        height={namesiloRadarLogo.height}
-        sizes="(max-width: 1023px) 36px, 40px"
-        className="relative z-10 aspect-square h-full w-full object-contain"
+        src={nameMogLogo}
+        alt="NameMog"
+        width={nameMogLogo.width}
+        height={nameMogLogo.height}
+        sizes="(max-width: 1023px) 120px, 168px"
+        className="brand-logo__image"
         priority={priority}
+        style={{ aspectRatio: LOGO_ASPECT }}
       />
     </span>
   );

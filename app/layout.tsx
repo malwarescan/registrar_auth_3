@@ -22,8 +22,9 @@ export const metadata: Metadata = {
     title: "NS Intel",
   },
   icons: {
-    icon: [{ url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" }],
-    apple: [{ url: "/icons/icon-180.png", sizes: "180x180", type: "image/png" }],
+    icon: [{ url: "/favicon.ico", sizes: "any" }],
+    shortcut: [{ url: "/favicon.ico" }],
+    apple: [{ url: "/favicon.ico" }],
   },
 };
 

@@ -13,105 +13,27 @@ body {
   font-family: var(--font-inter), Inter, system-ui, sans-serif;
 }
 
-@keyframes signalPulse {
-  0% {
-    opacity: 0.5;
-    transform: translate(-50%, -50%) scale(1);
-  }
-  70% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(1.42);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(1.58);
-  }
+.brand-logo {
+  display: inline-flex;
+  shrink: 0;
+  align-items: center;
+  line-height: 0;
 }
 
-.signal-pulse-ring {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  border: 2px solid color-mix(in srgb, var(--secondary) 75%, transparent);
-  box-shadow: 0 0 14px color-mix(in srgb, var(--secondary) 38%, transparent);
-  transform: translate(-50%, -50%);
-  transform-origin: center center;
-  animation: signalPulse 3.8s ease-out infinite;
-  pointer-events: none;
+.brand-logo__image {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  object-fit: contain;
 }
 
-.signal-pulse-ring-inner {
-  width: calc(100% + 28px);
-  height: calc(100% + 28px);
-  border-width: 2px;
+.brand-logo--header .brand-logo__image {
+  height: var(--logo-height-header);
+  max-width: var(--logo-max-width-header);
 }
 
-.signal-pulse-ring-outer {
-  width: calc(100% + 44px);
-  height: calc(100% + 44px);
-  border-width: 1.5px;
-}
-
-.signal-pulse-ring-delay {
-  animation-delay: 1.7s;
-}
-
-/* Logo pulse — periwinkle glow + electric blue to match radar artwork */
-.brand-logo .brand-logo-pulse {
-  border-color: color-mix(in srgb, var(--radar-glow) 80%, var(--radar-accent) 20%);
-  box-shadow:
-    0 0 10px color-mix(in srgb, var(--radar-glow) 50%, transparent),
-    0 0 22px color-mix(in srgb, var(--radar-accent) 22%, transparent);
-}
-
-.brand-logo .brand-logo-pulse.signal-pulse-ring-inner {
-  border-width: 2px;
-  border-color: color-mix(in srgb, var(--radar-glow-soft) 88%, var(--radar-accent) 12%);
-  box-shadow:
-    0 0 8px color-mix(in srgb, var(--radar-glow-soft) 62%, transparent),
-    0 0 16px color-mix(in srgb, var(--radar-glow) 28%, transparent);
-}
-
-.brand-logo .brand-logo-pulse.signal-pulse-ring-outer {
-  border-color: color-mix(in srgb, var(--radar-accent) 72%, var(--radar-navy) 28%);
-  box-shadow:
-    0 0 14px color-mix(in srgb, var(--radar-accent) 34%, transparent),
-    0 0 28px color-mix(in srgb, var(--radar-glow) 18%, transparent);
-}
-
-.brand-logo img {
-  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--radar-glow) 35%, transparent));
-}
-
-@media (max-width: 1023px) {
-  .brand-logo-pulse.signal-pulse-ring-inner {
-    width: calc(100% + 18px);
-    height: calc(100% + 18px);
-  }
-
-  .brand-logo-pulse.signal-pulse-ring-outer {
-    width: calc(100% + 28px);
-    height: calc(100% + 28px);
-  }
-
-  @keyframes signalPulseMobile {
-    0% {
-      opacity: 0.45;
-      transform: translate(-50%, -50%) scale(1);
-    }
-    70% {
-      opacity: 0;
-      transform: translate(-50%, -50%) scale(1.28);
-    }
-    100% {
-      opacity: 0;
-      transform: translate(-50%, -50%) scale(1.36);
-    }
-  }
-
-  .brand-logo-pulse {
-    animation-name: signalPulseMobile;
-  }
+.brand-logo--sidebar .brand-logo__image {
+  height: var(--logo-height-sidebar);
+  max-width: var(--logo-max-width-sidebar);
 }
