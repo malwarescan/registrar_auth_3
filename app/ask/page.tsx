@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
+import { getSiteUrl } from "@/lib/guides/schema";
 import { PageShell } from "@/components/layout/PageShell";
 import { Card } from "@/components/ui/Card";
+
+export const metadata: Metadata = {
+  title: "Ask",
+  alternates: { canonical: `${getSiteUrl()}/ask` },
+};
 
 export default function AskPage() {
   return (

@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import { PageShell } from "@/components/layout/PageShell";
 import { Card } from "@/components/ui/Card";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
+
+export const metadata: Metadata = {
+  title: "Offline",
+  robots: { index: false, follow: true },
+};
 
 export default function OfflinePage() {
   return (

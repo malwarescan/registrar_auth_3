@@ -42,6 +42,9 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://namemog.com";
 
   return {
+    // Domain reports are generated on demand (the sitemap entries were demo data);
+    // keep them out of the index but let crawlers follow their links.
+    robots: { index: false, follow: true },
     title: `${domain} — Domain Signal Report | NameSilo Intelligence`,
     description: `Signal analysis for ${domain}: brand ${candidate.signals.brand}, SEO ${candidate.signals.search}, AI ${candidate.signals.ai}. ${candidate.analysis.recommendedAction}`,
     alternates: { canonical: `${siteUrl}/domain/${name}` },

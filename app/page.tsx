@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { SearchPageClient } from "@/components/search/SearchPageClient";
+import { getSiteUrl } from "@/lib/guides/schema";
 
 export const metadata: Metadata = {
+  alternates: { canonical: `${getSiteUrl()}/` },
   title: "NameSilo Intelligence — Domain Signal Search",
   description:
     "Professional NameSilo Marketplace with integrated domain signal intelligence for brand, SEO, and AI visibility.",
@@ -10,6 +12,7 @@ export const metadata: Metadata = {
     description:
       "Discover domains with data-driven brand, SEO, and AI visibility signals.",
     type: "website",
+    url: `${getSiteUrl()}/`,
   },
 };
 
