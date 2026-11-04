@@ -12,6 +12,16 @@ const withPWA = withPWAInit({
 
 const nextConfig: NextConfig = {
   turbopack: {},
+  async redirects() {
+    return [
+      {
+        // Guide re-angled from "SEO relevance" to a used-domain history audit (2026-11-05).
+        source: "/guides/how-to-check-domain-name-seo-relevance",
+        destination: "/guides/how-to-check-a-used-domains-history-before-buying",
+        statusCode: 301,
+      },
+    ];
+  },
 };
 
 export default withPWA(nextConfig);

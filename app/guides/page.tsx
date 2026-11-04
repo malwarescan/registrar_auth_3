@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "@/components/layout/PageShell";
 import { GUIDES } from "@/lib/guides/guides";
-import { getSiteUrl, guidesIndexJsonLd, jsonLdString } from "@/lib/guides/schema";
+import { guidesIndexJsonLd } from "@/lib/guides/schema";
+import { getSiteUrl, jsonLdString, ogBase } from "@/lib/site";
 
 const DESCRIPTION =
-  "Decision guides for choosing a domain name: how to score names for branding, what makes a domain valuable, what to do when your name is taken, and how SEO and AI assistants factor in.";
+  "Decision guides for choosing a domain name: how to score names for branding, what makes a domain valuable, what to do when your name is taken, and how to audit a used domain's history, and where AI assistants fit in.";
 
 export function generateMetadata(): Metadata {
   const url = `${getSiteUrl()}/guides`;
@@ -13,7 +14,7 @@ export function generateMetadata(): Metadata {
     title: "Domain Name Decision Guides",
     description: DESCRIPTION,
     alternates: { canonical: url },
-    openGraph: { title: "Domain Name Decision Guides", description: DESCRIPTION, type: "website", url },
+    openGraph: { ...ogBase(), title: "Domain Name Decision Guides", description: DESCRIPTION, type: "website", url },
   };
 }
 
@@ -31,8 +32,12 @@ export default function GuidesIndexPage() {
           </h1>
           <p className="text-[var(--on-surface-variant)]">
             Practical frameworks for choosing a domain: what to score, how to weigh trade-offs, and when
-            to walk away. Each guide explains how NameMog&apos;s own signals are computed, so you know
-            what the scores measure and what you still have to check yourself.
+            to walk away. Each guide answers one question and says which checks the scores can&apos;t do
+            for you. The formulas behind every score are on the{" "}
+            <Link href="/methodology" className="font-medium text-[var(--theme-primary)] underline">
+              methodology page
+            </Link>
+            .
           </p>
         </header>
         <ul className="grid gap-3">

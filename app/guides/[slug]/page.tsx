@@ -3,8 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageShell } from "@/components/layout/PageShell";
 import { GUIDES, getGuide } from "@/lib/guides/guides";
-import { SIGNAL_MODEL, OVERALL_SCORE_NOTE } from "@/lib/guides/signal-model";
-import { getSiteUrl, guideJsonLd, jsonLdString } from "@/lib/guides/schema";
+import { SIGNAL_MODEL } from "@/lib/guides/signal-model";
+import { guideJsonLd } from "@/lib/guides/schema";
+import { getSiteUrl, jsonLdString, ogBase, SITE_NAME } from "@/lib/site";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -26,6 +27,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description: guide.metaDescription,
     alternates: { canonical: url },
     openGraph: {
+      ...ogBase(),
       title: guide.metaTitle,
       description: guide.metaDescription,
       type: "article",
@@ -67,7 +69,7 @@ export default async function GuidePage({ params }: PageProps) {
           <h1 className="text-2xl font-bold md:text-3xl">{guide.question}</h1>
           <p className="text-lg leading-relaxed">{guide.answer}</p>
           <p className={`text-xs ${muted}`}>
-            Updated <time dateTime={guide.dateModified}>{guide.dateModified}</time> · NameMog
+            Updated <time dateTime={guide.dateModified}>{guide.dateModified}</time> · {SITE_NAME}
           </p>
         </header>
 
@@ -80,7 +82,7 @@ export default async function GuidePage({ params }: PageProps) {
                 <tr className="border-b border-[var(--outline-variant)] text-left">
                   <th className="py-2 pr-3 font-semibold">Criterion</th>
                   <th className="py-2 pr-3 font-semibold">What to check</th>
-                  <th className="py-2 font-semibold">How NameMog handles it</th>
+                  <th className="py-2 font-semibold">What the scores cover</th>
                 </tr>
               </thead>
               <tbody>
@@ -138,31 +140,59 @@ export default async function GuidePage({ params }: PageProps) {
           </section>
         )}
 
+        {guide.example && (
+          <section className="space-y-3">
+            <h2 className={h2}>{guide.example.heading}</h2>
+            <p>{guide.example.intro}</p>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[560px] border-collapse text-sm">
+                <caption className={`mb-2 text-left text-xs ${muted}`}>{guide.example.table.caption}</caption>
+                <thead>
+                  <tr className="border-b border-[var(--outline-variant)] text-left">
+                    {guide.example.table.columns.map((col) => (
+                      <th key={col} scope="col" className="py-2 pr-3 font-semibold">{col}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {guide.example.table.rows.map((row) => (
+                    <tr key={row[0]} className="border-b border-[var(--outline-variant)] align-top">
+                      {row.map((cell, i) =>
+                        i === 0 ? (
+                          <th key={i} scope="row" className="py-2 pr-3 text-left font-medium">{cell}</th>
+                        ) : (
+                          <td key={i} className="py-2 pr-3">{cell}</td>
+                        )
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="font-medium">{guide.example.verdict}</p>
+          </section>
+        )}
+
         <section className="space-y-3">
-          <h2 className={h2}>How NameMog&apos;s scores relate to this</h2>
-          <p className={muted}>
-            NameMog scores every name 0–100 from the name itself and the words in your search. These are
-            heuristics, not traffic or ranking data. The signals used in this guide:
+          <h2 className={h2}>{guide.signalsHeading}</h2>
+          <ul className="list-disc space-y-2 pl-6">
+            {guide.signalNotes.map(({ key, note }) => (
+              <li key={key}>
+                <Link href={`/methodology#${key}`} className="font-semibold hover:underline">
+                  {SIGNAL_MODEL[key].label}
+                </Link>
+                : {note}
+              </li>
+            ))}
+          </ul>
+          <p className={`text-sm ${muted}`}>
+            Scores are 0–100 heuristics computed from the name and your search words, not traffic or ranking data.{" "}
+            <Link href="/methodology" className={link}>Full definitions of every score</Link>.
           </p>
-          <dl className="space-y-3">
-            {guide.signals.map((key) => {
-              const s = SIGNAL_MODEL[key];
-              return (
-                <div key={key} className={card}>
-                  <dt className="font-semibold">{s.label}</dt>
-                  <dd className="mt-1 text-sm">{s.computedFrom}</dd>
-                  <dd className={`mt-1 text-sm ${muted}`}>
-                    <span className="font-medium">Doesn&apos;t measure:</span> {s.limits}
-                  </dd>
-                </div>
-              );
-            })}
-          </dl>
-          <p className={`text-sm ${muted}`}>{OVERALL_SCORE_NOTE}</p>
         </section>
 
         <section className="space-y-3">
-          <h2 className={h2}>When not to</h2>
+          <h2 className={h2}>{guide.whenNotHeading}</h2>
           <ul className="list-disc space-y-2 pl-6">
             {guide.whenNot.map((w) => (
               <li key={w}>{w}</li>
@@ -170,8 +200,9 @@ export default async function GuidePage({ params }: PageProps) {
           </ul>
         </section>
 
-        <section className="space-y-3">
-          <h2 className={h2}>Common mistakes</h2>
+        
+<section className="space-y-3">
+          <h2 className={h2}>{guide.mistakesHeading}</h2>
           <ul className="list-disc space-y-2 pl-6">
             {guide.mistakes.map((m) => (
               <li key={m}>{m}</li>

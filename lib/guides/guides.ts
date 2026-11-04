@@ -3,7 +3,7 @@ import type { SignalKey } from "./signal-model";
 export type GuideCriterion = {
   name: string;
   check: string;
-  /** How (or whether) NameMog measures this criterion. */
+  /** How (or whether) the site's scores cover this criterion. */
   inApp: string;
 };
 
@@ -33,11 +33,17 @@ export type Guide = {
     intro: string;
     criteria: GuideCriterion[];
   };
-  /** Which NameMog signals this guide relies on. */
-  signals: SignalKey[];
+  /** Guide-specific H2 for the scores section. */
+  signalsHeading: string;
+  /** One guide-specific sentence per score this guide relies on (full definitions live on /methodology). */
+  signalNotes: { key: SignalKey; note: string }[];
   table?: GuideTable;
   steps?: { heading: string; items: string[] };
+  /** Optional worked example with real, dated data. */
+  example?: { heading: string; intro: string; table: GuideTable; verdict: string };
+  whenNotHeading: string;
   whenNot: string[];
+  mistakesHeading: string;
   mistakes: string[];
   nextStep: { text: string; links: GuideLink[] };
   faqs: GuideFaq[];
@@ -46,6 +52,7 @@ export type Guide = {
 };
 
 const PUBLISHED = "2026-11-04";
+const REVISED = "2026-11-05";
 
 const GOOGLE_SEO_STARTER = {
   href: "https://developers.google.com/search/docs/fundamentals/seo-starter-guide",
@@ -59,6 +66,24 @@ const GOOGLE_AI_FEATURES = {
   href: "https://developers.google.com/search/docs/appearance/ai-features",
   label: "Google Search Central: AI features and your website",
 };
+const GOOGLE_SPAM_POLICIES = {
+  href: "https://developers.google.com/search/docs/essentials/spam-policies",
+  label: "Google Search Central: Spam policies (including expired domain abuse)",
+};
+const GOOGLE_MANUAL_ACTIONS = {
+  href: "https://support.google.com/webmasters/answer/9044175",
+  label: "Search Console Help: Manual actions report",
+};
+const SAFE_BROWSING = {
+  href: "https://transparencyreport.google.com/safe-browsing/search",
+  label: "Google Transparency Report: Safe Browsing site status",
+};
+const SPAMHAUS = { href: "https://check.spamhaus.org/", label: "Spamhaus: check a domain against its blocklists" };
+const MOZ_SPAM_SCORE = {
+  href: "https://moz.com/help/link-explorer/link-building/spam-score",
+  label: "Moz Help: Spam Score",
+};
+const USPTO_SEARCH = { href: "https://tmsearch.uspto.gov/", label: "USPTO Trademark Search" };
 const ICANN_LOOKUP = {
   href: "https://lookup.icann.org/",
   label: "ICANN Lookup (registration data via RDAP)",
@@ -75,86 +100,104 @@ const COMPARE_EXAMPLE: GuideLink = {
   label: "See an example side-by-side comparison",
 };
 
+export const HISTORY_SLUG = "how-to-check-a-used-domains-history-before-buying";
+/** Former slug of the history guide; 301-redirected in next.config.ts. */
+export const HISTORY_OLD_SLUG = "how-to-check-domain-name-seo-relevance";
+
 export const GUIDES: Guide[] = [
   {
     slug: "how-to-score-a-domain-name-for-branding",
     question: "How to score a domain name for branding",
-    metaTitle: "How to Score a Domain Name for Branding (Scorecard + Weights)",
+    metaTitle: "How to Score a Domain Name for Branding: Weighted Scorecard",
     metaDescription:
-      "A practical scorecard for rating domain names as brands: what to score, how to weight it by business type, what an algorithm can and cannot measure, and the mistakes that skew scores.",
+      "Build a weighted branding scorecard for domain names: set the weights from how customers will find you, score each name against fixed anchors, and read the result as a trade-off.",
     answer:
-      "Score each candidate separately on clarity and length, recall when spoken, fit with what you sell, extension trust and price, then weight those scores by what your business depends on instead of trusting one gut number. Measure the parts a tool can compute (length, keyword fit, extension) and test the parts it cannot (pronunciation, meaning, trademark conflicts) with real people and a trademark search. The name that wins is the best trade-off, not the one with the highest single score.",
+      "Set the weights before you look at any names, based on how customers will find you, then score every name 0–100 on each row against fixed anchors. A business that grows by referrals should weight spoken recall far above keyword match; a search-led content site can reverse that. The scorecard exists to make the trade-off visible, so compare your top two names row by row instead of trusting the totals alone.",
     datePublished: PUBLISHED,
-    dateModified: PUBLISHED,
+    dateModified: REVISED,
     framework: {
-      heading: "The branding scorecard",
+      heading: "Scoring anchors: what high and low look like",
       intro:
-        "Score every name 0–100 on each row. Rows marked as manual are things no string-based scorer can judge, so do them yourself before you trust any total.",
+        "Anchors stop your scale drifting as you work down the list. Use the same anchors for every name, and treat any row a tool can't score as a manual row.",
       criteria: [
         {
-          name: "Clarity and length",
-          check: "Can someone read the label once and repeat it? Shorter usually wins; past about 12 characters recall drops noticeably.",
-          inApp: "Brand Strength: clarity loses 4 points per character past 12 characters and faster past 18.",
+          name: "Memorability",
+          check: "High: one coined word or two short real words that a stranger repeats correctly after hearing them once. Low: three or more words, or a word people ask you to spell.",
+          inApp: "Partly. Brand Strength rewards short compound labels; spoken recall is a manual row.",
         },
         {
-          name: "Spoken recall (radio test)",
-          check: "Say it once to five people who haven't seen it written. Every one should type it correctly.",
-          inApp: "Not scored. Do this manually for your final three.",
+          name: "Category hint",
+          check: "High: a word in the name tells a new customer roughly what you sell. Low: so abstract that every ad has to explain it.",
+          inApp: "Search Relevance and Marketing Clarity count how many of your query's words the name carries.",
         },
         {
-          name: "Fit with what you do",
-          check: "Does the name hint at your category, or is it abstract enough that you'll pay to explain it?",
-          inApp: "Search Relevance and Marketing Clarity measure how many of your query's words the name carries.",
+          name: "Distinctiveness",
+          check: "High: searching the name in quotes finds nobody else in your field. Low: a stock phrase dozens of businesses already use.",
+          inApp: "Not scored. Search the exact name and your trademark register.",
         },
         {
-          name: "Room to grow",
-          check: "Would it still fit if you added a product line or moved into a new city?",
-          inApp: "Not scored. A name that is just your query glued together is marked down for brand-style intents, which partly captures this.",
+          name: "Stretch",
+          check: "High: still fits after a second product line or a second city. Low: names one product, one place or one year.",
+          inApp: "Not scored directly. For brand intents a name that only glues your whole query together is marked down, which catches the worst cases.",
         },
         {
-          name: "Extension trust",
-          check: "Will your customers assume .com? Is the alternative extension familiar in your market?",
-          inApp: "Trust: .com 100, .net 85, .org 80, .io 75, .co 70, others lower.",
+          name: "Extension fit",
+          check: "High: the extension your customers would guess without being told. Low: one you'd have to say out loud every time.",
+          inApp: "Trust is set by the extension, highest for .com.",
         },
         {
-          name: "Price against signal",
-          check: "Is the price justified by the scores, compared with your next-best option?",
-          inApp: "Value: the average signal minus a price penalty.",
-        },
-        {
-          name: "Legal clearance",
-          check: "Search your national trademark database for the name in your category.",
-          inApp: "Not scored. Always manual.",
+          name: "Cost against the runner-up",
+          check: "High: priced close to your next-best name. Low: several times the price for a few points of score.",
+          inApp: "Value subtracts 1 point per $20 of price, capped at 25 points.",
         },
       ],
     },
-    signals: ["brand", "marketing", "search", "trust", "value"],
-    table: {
-      heading: "How common name types tend to score",
-      caption:
-        "Tendencies under NameMog's model for a business-brand search; individual names vary with length and extension.",
-      columns: ["Name type", "Example pattern", "Brand Strength", "Search Relevance", "Main risk"],
-      rows: [
-        ["Descriptive (your query, joined)", "smarthomesecurity.com", "Medium to low if long", "Marked down for brand intents", "Generic, hard to own, often long"],
-        ["Short compound", "brightnest.com", "High (6–14 character bonus)", "Medium; depends on words used", "May need a tagline to explain"],
-        ["Keyword + modifier", "getbrightnest.com", "Medium; longer label", "Medium", "Feels like a fallback if the base .com belongs to someone else"],
-        ["Invented word", "a coined 5–8 letter name", "High if short", "Low; no query words", "Spelling ambiguity; you must build all meaning"],
-        ["Hyphenated", "bright-nest.com", "Lower in brand mode", "Similar to unhyphenated", "Fails the radio test; people drop the hyphen"],
-      ],
-    },
-    whenNot: [
-      "Don't rely on a score when choosing between two names a trademark search hasn't cleared. Legal risk overrides every other row.",
-      "Don't weight branding heavily for a short-lived campaign or a pure content site. Use your actual buying intent; a local service business weights search and trust more than brand.",
-      "Don't score names you can't actually buy. Check availability and price first so the shortlist isn't full of names you can't get.",
+    signalsHeading: "Which scores can fill in a branding scorecard",
+    signalNotes: [
+      { key: "brand", note: "The nearest automated stand-in for the memorability row. Use it to separate names of similar length, not to replace saying the name out loud." },
+      { key: "marketing", note: "Fits the category-hint row, because it only rises when a name is short enough to remember and also carries your query words." },
+      { key: "trust", note: "Fills the extension-fit row directly; if all your finalists are .com it won't separate them." },
+      { key: "value", note: "Covers cost against the runner-up from the listed price only; add renewal and any marketplace fees yourself." },
     ],
+    steps: {
+      heading: "How to set the weights",
+      items: [
+        "Write down where your first 100 customers will come from: referrals, search, ads, a marketplace listing or sales calls.",
+        "Give the heaviest weight to the row that channel depends on: memorability for referrals and calls, category hint for search, distinctiveness for ads and social.",
+        "Keep any single weight to roughly a third of the total, so one row can't decide the result on its own.",
+        "Lock the weights, then score. If you change a weight after seeing totals, write down the reason.",
+        "Score all finalists in one sitting against the anchors, then look at the rows where your top two names differ most. That gap is the real decision.",
+      ],
+    },
+    table: {
+      heading: "Starting weights by buying intent",
+      caption:
+        "The weights the search starts from for each buying intent (higher means more influence on the overall score). You can change them in the side panel before ranking.",
+      columns: ["Buying intent", "Brand", "SEO", "AI visibility", "Trust", "Value", "Resale"],
+      rows: [
+        ["Business brand", "2.5", "1", "1.2", "2", "1", "0.5"],
+        ["SaaS / app / tech product", "2.5", "1", "2.5", "1.2", "1", "1"],
+        ["Local service business", "1.2", "2.5", "0.8", "2.5", "1", "0.3"],
+        ["Ecommerce store", "2.2", "1.2", "1", "2.5", "1", "0.5"],
+        ["SEO content site", "1", "3", "2", "1.2", "1", "0.5"],
+        ["Domain investment", "1.5", "1", "0.8", "1.2", "2.5", "3"],
+      ],
+    },
+    whenNotHeading: "When a weighted branding scorecard is the wrong tool",
+    whenNot: [
+      "When only one name has cleared a trademark search. A scorecard ranks options; with one legal option there is nothing to rank.",
+      "For a campaign or event site you'll retire within a year. Take the clearest available name and move on.",
+      "When a co-founder or client holds a veto. Collect their must-haves and deal-breakers first and treat them as hard filters, not weights.",
+    ],
+    mistakesHeading: "Scorecard mistakes that skew the result",
     mistakes: [
-      "Using one 1–10 gut score per name. It hides the trade-off between memorability and descriptiveness, which is the actual decision.",
-      "Judging names only on screen. Spelling problems show up when the name is spoken, not read.",
-      "Treating a long descriptive .com as automatically better than a short compound on a familiar alternative extension. Score both and compare.",
-      "Changing weights after you've fallen for a name. Set the weights from your business model first, then score.",
+      "Giving each name one 1–10 gut score, which hides the trade-off between memorability and descriptiveness.",
+      "Scoring without anchors, so the first name you rate sets the scale for everything after it.",
+      "Moving the weights once you have a favourite. Set them from the business model, then score.",
+      "Counting one quality twice, for example rewarding shortness under memorability and again under a separate length row.",
     ],
     nextStep: {
-      text: "Describe your business in the search box and pick your buying intent. NameMog scores every candidate on the signals above using the weights for that intent, and you can change the weights in the side panel.",
+      text: "Pick the buying intent that matches your main customer channel, adjust the weights in the side panel if your mix is different, and every candidate is ranked with those weights.",
       links: [SEARCH_CTA, COMPARE_EXAMPLE],
     },
     faqs: [
@@ -163,73 +206,69 @@ export const GUIDES: Guide[] = [
         a: "There is no universal cut-off. Compare scores between your own candidates for the same query and intent. A name that leads on Brand Strength by 10+ points while staying close on Search Relevance is usually the stronger brand choice.",
       },
       {
-        q: "Should branding or SEO matter more when scoring a domain?",
-        a: "It depends on how customers will find you. Google says keywords in a domain name have hardly any ranking effect beyond appearing in breadcrumbs, so most businesses should weight memorability and trust above keyword match. Search-led content sites are the exception.",
+        q: "How much weight should SEO get in a branding scorecard?",
+        a: "Less than most people expect, unless search is your main channel. For referral- and sales-led businesses, memorability and trust usually deserve more weight than keyword match; for a content site that lives on search, raise the SEO weight and lower brand.",
       },
       {
         q: "How long should a brandable domain be?",
-        a: "Aim for 12 characters or fewer before the extension. NameMog's clarity score starts falling after 12 characters, and its name generator caps brand-style names at 14.",
+        a: "Aim for 12 characters or fewer before the extension. The clarity part of Brand Strength starts falling after 12 characters, and the name generator caps brand-style names at 14.",
       },
       {
-        q: "Can a tool tell me if a domain name is a good brand?",
-        a: "Only partly. A tool can measure length, keyword fit and extension trust consistently across many names. It cannot hear how a name sounds, know what it means in other languages, or clear trademarks; you have to check those yourself.",
+        q: "Should I score names myself or use a tool?",
+        a: "Both. A tool applies the same rules to hundreds of names in seconds, which suits the first cut. Your final three still need the human rows: how the name sounds, what it means in your customers' languages and whether it is legally clear.",
       },
     ],
-    sources: [GOOGLE_SEO_STARTER],
+    sources: [USPTO_SEARCH],
     related: [
-      "what-signals-make-a-domain-name-valuable",
-      "how-to-pick-a-domain-name-that-is-easy-to-say",
       "how-to-shortlist-domain-names-for-a-new-company",
+      "how-to-pick-a-domain-name-that-is-easy-to-say",
+      "what-signals-make-a-domain-name-valuable",
+      "how-do-ai-assistants-choose-which-brand-to-recommend",
     ],
   },
   {
     slug: "what-signals-make-a-domain-name-valuable",
     question: "What signals make a domain name valuable?",
-    metaTitle: "What Signals Make a Domain Name Valuable? (Use Value vs Resale Value)",
+    metaTitle: "What Signals Make a Domain Name Valuable? (Use vs Resale)",
     metaDescription:
-      "The signals that make a domain name valuable — length, extension, meaning, recall, history and legal cleanliness — split into what helps your business and what drives resale, with how to check each.",
+      "Use value vs resale value: which domain signals help your business, which drive what other buyers would pay, and why the same name can be worth a lot to you and little to the market.",
     answer:
-      "A domain is valuable when it is short, easy to say and spell, on an extension buyers trust (usually .com), meaningful in a market people spend money in, and free of trademark conflicts and a bad history. Separate value to your business (does it help customers find, remember and trust you) from resale value (would another buyer pay for it); the same name can be strong on one and weak on the other.",
+      "Ask first who the value is for. To your business, a domain is valuable when customers can remember, type and trust it; to the resale market, it is valuable when many other buyers would want it, which favours very short .com names built from commercial words. Both kinds of value collapse if the domain has a bad history or a trademark conflict, and one name can score high on one kind and low on the other.",
     datePublished: PUBLISHED,
-    dateModified: PUBLISHED,
+    dateModified: REVISED,
     framework: {
       heading: "Value signals checklist",
-      intro: "Work down the list. The first five can be read from the name itself; the last three need research about the specific domain.",
+      intro: "The first five signals can be read from the name. The last two need research on the specific domain.",
       criteria: [
         {
           name: "Length",
-          check: "Fewer characters means fewer typos and more scarcity. Count the label, not the extension.",
+          check: "Count the label, not the extension. Each character you remove cuts typos and raises scarcity.",
           inApp: "Brand Strength (clarity) and Resale Potential (+15 for 10 characters or fewer).",
         },
         {
           name: "Extension",
-          check: "Is the extension what your buyers type by habit? For resale, .com has the deepest buyer pool.",
+          check: "For use value: the extension your buyers type by habit. For resale: how deep the buyer pool is, which is deepest for .com.",
           inApp: "Trust and Resale Potential, both driven by the extension.",
         },
         {
-          name: "Meaning and commercial demand",
-          check: "Do the words describe something people buy? Category words carry more value than abstract ones.",
-          inApp: "Search Relevance measures keyword fit to your query, not market demand.",
+          name: "Commercial demand",
+          check: "Do the words name something people pay for? 'Roofing' carries more resale value than 'sunrise'.",
+          inApp: "Search Relevance measures fit to your own query, not market demand.",
         },
         {
-          name: "Brandability and recall",
-          check: "Does it sound like a company? Would people remember it after hearing it once?",
-          inApp: "Brand Strength approximates this from length and structure; recall itself is not scored.",
+          name: "Liquidity",
+          check: "How many different businesses could use this name? A name only one company could use is worth a lot to that company and little to anyone else.",
+          inApp: "Not scored.",
         },
         {
           name: "Price",
-          check: "What you pay against your next-best option.",
+          check: "What you pay compared with your next-best option, not compared with an appraisal.",
           inApp: "Value: average signal minus a price penalty.",
         },
         {
-          name: "History",
-          check: "Was the domain used before, and for what? Spam or unrelated past use can carry baggage.",
-          inApp: "Not scored. Check the Wayback Machine.",
-        },
-        {
-          name: "Existing links and traffic",
-          check: "A previously used domain may have relevant inbound links.",
-          inApp: "Not scored. Use a backlink tool.",
+          name: "History and inbound links",
+          check: "Past content and links can add value or carry baggage. Audit them before paying a premium for a used domain.",
+          inApp: "Not scored. Follow the used-domain history audit.",
         },
         {
           name: "Trademark cleanliness",
@@ -238,35 +277,43 @@ export const GUIDES: Guide[] = [
         },
       ],
     },
-    signals: ["brand", "search", "trust", "resale", "value"],
+    signalsHeading: "The scores that track use value and resale value",
+    signalNotes: [
+      { key: "resale", note: "The only score aimed at the resale side; it is structural (extension, length, .com), so treat it as a sorting aid, never a price." },
+      { key: "trust", note: "Feeds both sides: customer confidence for use value and buyer-pool depth for resale." },
+      { key: "search", note: "Measures fit with what you do, which is use value; it says nothing about how many other buyers want those words." },
+      { key: "value", note: "Weighs the signals against the asking price, which is the number that matters when a premium is on the table." },
+    ],
     table: {
       heading: "Business value vs resale value",
       caption: "Which signals matter more depends on whether you're building on the name or holding it.",
       columns: ["Signal", "Matters for your business", "Matters for resale", "How to check"],
       rows: [
-        ["Short label", "High: easier recall and typing", "High: scarcity", "Count characters; NameMog Brand Strength"],
-        [".com extension", "High if your customers type .com by habit", "Very high", "NameMog Trust and Resale"],
-        ["Category keyword", "Medium: clarity for customers", "High if the category is commercial", "NameMog Search Relevance against your query"],
+        ["Short label", "High: easier recall and typing", "High: scarcity", "Count characters; Brand Strength"],
+        [".com extension", "High if your customers type .com by habit", "Very high", "Trust and Resale scores"],
+        ["Category keyword", "Medium: clarity for customers", "High if the category is commercial", "Search Relevance against your query"],
         ["Pronounceable", "High: word of mouth", "Medium", "Radio test with five people"],
-        ["Clean history", "High: no inherited baggage", "High", "Wayback Machine snapshots"],
+        ["Clean history", "High: no inherited baggage", "High", "Used-domain history audit"],
         ["No trademark conflict", "Critical", "Critical", "Trademark database search"],
         ["Existing backlinks", "Low to medium", "Medium", "Backlink tool, then manual review"],
       ],
     },
+    whenNotHeading: "When to stop paying for value signals",
     whenNot: [
-      "Don't pay a premium for keyword value if search isn't how you'll get customers. Google says keywords in the domain have hardly any ranking effect beyond breadcrumbs.",
-      "Don't pay for resale signals (.com, very short) if you'll never sell and a slightly longer name works for your customers.",
-      "Don't buy a previously used domain for its backlinks without reviewing what those links are and where they come from.",
+      "When the premium buys keyword match and search isn't how you'll get customers. Google says keywords in a domain name have hardly any effect beyond appearing in breadcrumbs.",
+      "When the premium buys resale signals (very short, .com) and you never intend to sell.",
+      "When a used domain's price rests on its backlinks and nobody has audited them yet.",
     ],
+    mistakesHeading: "Valuation mistakes",
     mistakes: [
-      "Treating an appraisal number as a price. Automated appraisals and heuristic scores, NameMog's included, are not comparable-sales evidence.",
+      "Treating an appraisal number as a price. Automated appraisals and heuristic scores, these included, are not comparable-sales evidence.",
       "Assuming a newer extension ranks better because it contains a keyword. Google says keywords in a TLD give no advantage or disadvantage in search.",
-      "Ignoring history. A domain used for spam or an unrelated business can confuse customers who remember it.",
       "Confusing value to you with market value. A name can be worth a lot to your business and little to anyone else.",
+      "Ignoring renewal pricing. Some premium names renew at a premium every year, which changes the real cost.",
     ],
     nextStep: {
-      text: "Run your business description through NameMog to see Brand, Search, AI/Entity, Trust, Resale and Value scores side by side for each candidate. Then do the history and trademark checks for your finalists.",
-      links: [SEARCH_CTA, COMPARE_EXAMPLE],
+      text: "Score your candidates to see Trust, Resale and Value side by side, decide which kind of value you are paying for, then audit the history of any finalist that was used before.",
+      links: [SEARCH_CTA, { href: `/guides/${HISTORY_SLUG}`, label: "Audit a used domain's history" }],
     },
     faqs: [
       {
@@ -278,18 +325,18 @@ export const GUIDES: Guide[] = [
         a: "Not meaningfully. Google's SEO Starter Guide says keywords in a domain name alone have hardly any effect beyond appearing in breadcrumbs. Keyword domains can still help people understand what you do.",
       },
       {
-        q: "How do I check a domain's history before buying?",
-        a: "Look the domain up in the Internet Archive's Wayback Machine to see past versions of the site, and search Google for the domain to see what others said about it. If it hosted spam or something unrelated to you, weigh that before paying.",
+        q: "Why is a domain worth more to me than its appraisal?",
+        a: "An appraisal estimates what the next buyer would pay. Your use value includes things no appraisal sees: branding you've already printed, the cost of renaming and customers who already type the name. You can rationally pay above an appraisal, up to your own use value, as long as you know which number you're paying.",
       },
       {
-        q: "Is NameMog's Resale Potential score an appraisal?",
+        q: "Is the Resale Potential score an appraisal?",
         a: "No. It is a structural score built from extension trust, label length and whether the name is a .com. Use it to compare candidates, not to price a sale.",
       },
     ],
-    sources: [GOOGLE_SEO_STARTER, GOOGLE_NEW_TLDS, WAYBACK],
+    sources: [GOOGLE_SEO_STARTER, GOOGLE_NEW_TLDS],
     related: [
+      HISTORY_SLUG,
       "how-to-score-a-domain-name-for-branding",
-      "how-to-check-domain-name-seo-relevance",
       "alternatives-when-the-domain-name-you-want-is-taken",
     ],
   },
@@ -302,7 +349,7 @@ export const GUIDES: Guide[] = [
     answer:
       "Pick a name that someone can type correctly after hearing it once: real words or plain phonetic spellings, no numbers or hyphens you'd have to explain, and no word boundary that reads two ways. Test it with the radio test: say it once to five people who haven't seen it written, ask them to type it, and drop or fix any name that anyone gets wrong.",
     datePublished: PUBLISHED,
-    dateModified: PUBLISHED,
+    dateModified: REVISED,
     framework: {
       heading: "Say-it and spell-it checklist",
       intro: "A name should pass every row. One failure is usually enough to fix or drop it.",
@@ -310,12 +357,12 @@ export const GUIDES: Guide[] = [
         {
           name: "One spelling per sound",
           check: "Avoid homophones and alternative spellings (to/two/too, right/write, s/z or c/k swaps) unless the odd spelling is the whole point of the brand.",
-          inApp: "Not scored. NameMog reads text, not sound.",
+          inApp: "Not scored. The scores read text, not sound.",
         },
         {
           name: "No digits or hyphens you have to say out loud",
           check: "\"Four\" or \"4\"? \"Dash\" or no dash? Every explanation costs visitors.",
-          inApp: "NameMog's generator drops names that start with a number and, for brand-style intents, hyphenated names.",
+          inApp: "The generator drops names that start with a number and, for brand-style intents, hyphenated names.",
         },
         {
           name: "Clean word boundaries",
@@ -339,7 +386,11 @@ export const GUIDES: Guide[] = [
         },
       ],
     },
-    signals: ["brand", "trust"],
+    signalsHeading: "What the scores can and can't hear",
+    signalNotes: [
+      { key: "brand", note: "Shorter labels score higher, which loosely tracks fewer syllables, but nothing in the score can detect a homophone or a misleading word boundary." },
+      { key: "trust", note: "Matters here because listeners fill in the extension themselves; a non-.com name has to be spoken with its extension every time." },
+    ],
     steps: {
       heading: "How to run the radio test",
       items: [
@@ -363,11 +414,13 @@ export const GUIDES: Guide[] = [
         ["Long multi-word label", "Listener forgets the order or a word", "Cut to the two words that carry the meaning"],
       ],
     },
+    whenNotHeading: "When a radio-test failure isn't a deal-breaker",
     whenNot: [
       "Don't throw out a short invented name just because it's new. Unfamiliar is fine if the spelling is obvious from the sound.",
       "Don't rely on capitalization (BrightNest) to fix a boundary problem. Domains are case-insensitive and appear in lowercase in many places.",
       "Don't skip the test for a name you'll mostly use in print. Customers will still say it to each other.",
     ],
+    mistakesHeading: "Radio-test mistakes",
     mistakes: [
       "Testing with people who have already seen the name written.",
       "Spelling the name out during the test. If you have to spell it, it failed.",
@@ -375,7 +428,7 @@ export const GUIDES: Guide[] = [
       "Buying the creative spelling without also buying the dictionary spelling people will type.",
     ],
     nextStep: {
-      text: "Use NameMog to generate and score candidates, save the short, clean ones to your shortlist, then run the radio test on your top three before you buy.",
+      text: "Generate and score candidates, save the short, clean ones to your shortlist, then run the radio test on your top three before you buy.",
       links: [SEARCH_CTA, { href: "/portfolio", label: "Open your saved shortlist" }],
     },
     faqs: [
@@ -389,7 +442,7 @@ export const GUIDES: Guide[] = [
       },
       {
         q: "Are hyphens in domain names bad?",
-        a: "For a brand you'll say out loud, usually yes, because people forget or drop the hyphen. Hyphens do make word boundaries unambiguous in writing, which is why NameMog gives them a small clarity bonus, but they cost you on spoken recall.",
+        a: "For a brand you'll say out loud, usually yes, because people forget or drop the hyphen. Hyphens do make word boundaries unambiguous in writing, which is why the AI/Entity Clarity score gives them a small bonus, but they cost you on spoken recall.",
       },
       {
         q: "Should I buy common misspellings of my domain?",
@@ -408,19 +461,19 @@ export const GUIDES: Guide[] = [
     question: "How to shortlist domain names for a new company",
     metaTitle: "How to Shortlist Domain Names for a New Company (Step by Step)",
     metaDescription:
-      "Go from a brainstorm to a final domain in seven steps: write a brief, generate widely, apply hard filters, score with weights that match your business, compare three finalists and test them with people.",
+      "The process from brainstorm to final domain: write a brief, generate widely, cut with hard filters before you score, keep three finalists of different styles and test them with people.",
     answer:
-      "Write a one-line brief and decide how customers will find you, generate a wide pool of 30–50 names across different styles, cut everything that fails hard filters (budget, availability, trademark, radio test), then score the survivors with weights that match your business. Keep three finalists, compare them side by side and test them with real people before you buy.",
+      "Write a one-line brief, generate 30–50 names in several styles, and cut everything that fails a hard filter (budget, availability, trademark, radio test) before you score anything. Score only the survivors, keep three finalists that aren't all the same style, and test those with real people before you buy. The order matters: filtering first stops you falling for a name you can't get or can't use.",
     datePublished: PUBLISHED,
-    dateModified: PUBLISHED,
+    dateModified: REVISED,
     framework: {
-      heading: "Shortlist filters and scoring",
-      intro: "Hard filters remove names outright. Scoring ranks what's left. Doing them in this order saves you from falling for a name you can't use.",
+      heading: "Hard filters: pass or out",
+      intro: "These are yes/no questions. A name that fails one is removed, however well it would score.",
       criteria: [
         {
           name: "Available within budget",
           check: "Can you register it or buy it at a price you'll actually pay?",
-          inApp: "NameMog's recommendations only come from candidates it found to be buyable: available to register or listed for sale.",
+          inApp: "Recommendations only come from candidates found to be buyable: available to register or listed for sale.",
         },
         {
           name: "Trademark clear",
@@ -435,45 +488,53 @@ export const GUIDES: Guide[] = [
         {
           name: "Structurally clean",
           check: "Not too long, no repeated words, no keyword stuffing, no leading digits.",
-          inApp: "NameMog's generator rejects labels over 14 characters for brand intents, four-plus-word joins, repeated roots and names starting with a number.",
+          inApp: "The generator rejects labels over 14 characters for brand intents, four-plus-word joins, repeated roots and names starting with a number.",
         },
         {
-          name: "Scores well on what matters to you",
-          check: "Rank by weighted score using your priorities.",
-          inApp: "Overall score uses weights for your buying intent; you can adjust Brand, SEO, AI visibility, Trust, Value and Resale.",
+          name: "Clean past, if it was used before",
+          check: "No spam history, blocklist entry or unrelated brand still attached to the domain.",
+          inApp: "Not checked. Run the used-domain history audit on finalists.",
         },
       ],
     },
-    signals: ["brand", "search", "ai", "trust", "value"],
+    signalsHeading: "Where scoring fits in the shortlist",
+    signalNotes: [
+      { key: "brand", note: "Most useful in step 4, to rank the survivors of the hard filters; don't use it to decide which ideas to generate." },
+      { key: "search", note: "Tells you which finalists carry your brief's words, which helps you keep one descriptive option among the three." },
+      { key: "ai", note: "Separates names that parse into a clear entity from ones that read as a jumble of words, useful when two finalists are otherwise close." },
+      { key: "trust", note: "Flags the extension trade-off early, before you get attached to a .co or .io finalist." },
+    ],
     steps: {
       heading: "The seven-step shortlist",
       items: [
         "Write a brief: what you sell, to whom, where, and how customers will find you (word of mouth, search, ads, marketplace).",
         "Generate 30–50 names across styles: descriptive, short compound, keyword + modifier, invented word, and location-based if you're local.",
-        "Apply hard filters: availability and budget, trademark search, structural problems. Expect to lose most of the list.",
-        "Score the survivors with weights that fit your business, set before you look at the names.",
-        "Keep the top three. Make sure they aren't all the same style, so you're choosing between real alternatives.",
+        "Apply the hard filters above. Expect to lose most of the list.",
+        "Score the survivors with weights you set before looking at the names.",
+        "Keep the top three, and make sure they aren't all the same style, so you're choosing between real alternatives.",
         "Compare the three side by side, then run the radio test and a gut check with a few target customers.",
         "Buy the winner, and consider the obvious misspelling or the .com/.net pair if it's cheap.",
       ],
     },
     table: {
-      heading: "Default weights by buying intent in NameMog",
-      caption: "Starting weights (higher means more influence on the overall score). You can change them before ranking.",
-      columns: ["Buying intent", "Brand", "SEO", "AI visibility", "Trust", "Value", "Resale"],
+      heading: "What a shortlist funnel usually looks like",
+      caption: "Illustrative numbers for a small-business naming round; your counts will differ, but the shape is typical.",
+      columns: ["Stage", "Names in", "Names out", "What removes them"],
       rows: [
-        ["Business brand", "2.5", "1", "1.2", "2", "1", "0.5"],
-        ["SaaS / app / tech product", "2.5", "1", "2.5", "1.2", "1", "1"],
-        ["Local service business", "1.2", "2.5", "0.8", "2.5", "1", "0.3"],
-        ["Ecommerce store", "2.2", "1.2", "1", "2.5", "1", "0.5"],
-        ["SEO content site", "1", "3", "2", "1.2", "1", "0.5"],
+        ["Generate", "—", "40", "Nothing yet; volume and variety are the goal"],
+        ["Availability and budget", "40", "18", "Taken with no sale listing, or priced above budget"],
+        ["Trademark and structure", "18", "10", "Live marks in your class, overlong labels, stuffed keywords"],
+        ["Weighted scoring", "10", "3", "Lowest weighted totals; keep three different styles"],
+        ["People test", "3", "1", "Radio-test misses and customer reactions"],
       ],
     },
+    whenNotHeading: "When to skip a formal shortlist",
     whenNot: [
-      "Don't shortlist before you've written the brief. Without it, you'll score names against a moving target.",
-      "Don't keep a name on the list because it's clever if it fails the radio test.",
-      "Don't wait for the perfect .com if a strong alternative is available now and your customers don't care about the extension.",
+      "When you already trade under a name and only need its domain. Your job is to get that name or its closest variant, not to brainstorm.",
+      "When the brief isn't written yet. Without it you'll filter against a moving target.",
+      "When a strong name is available today and your customers don't care about the extension; don't hold the round open waiting for a .com.",
     ],
+    mistakesHeading: "Shortlist mistakes",
     mistakes: [
       "Brainstorming only in one style, so the shortlist is three versions of the same idea.",
       "Scoring before filtering, which makes you attached to names you can't buy or legally use.",
@@ -481,7 +542,7 @@ export const GUIDES: Guide[] = [
       "Forgetting the extension in tests and on the shortlist; brightnest.com and brightnest.co are different decisions.",
     ],
     nextStep: {
-      text: "Start a search in NameMog with your brief and buying intent. Save the names you like to your shortlist, then open Compare to rank up to three finalists side by side.",
+      text: "Start a search with your brief and buying intent, save the names that survive your filters, then open Compare to put three finalists side by side.",
       links: [SEARCH_CTA, { href: "/compare", label: "Compare your shortlist" }],
     },
     faqs: [
@@ -497,27 +558,32 @@ export const GUIDES: Guide[] = [
         q: "What if my favorite name is only available on a non-.com extension?",
         a: "Score it next to your best .com option. If your customers will mostly click links rather than type the address, a familiar alternative extension can be fine; if word of mouth matters, weigh the .com more heavily.",
       },
+      {
+        q: "How long should shortlisting take?",
+        a: "For a small business, about a week of part-time work is enough: a day to write the brief and generate, a day to filter, an evening to score, and a few days to run the radio test and a trademark search on the finalists.",
+      },
     ],
-    sources: [],
+    sources: [USPTO_SEARCH],
     related: [
       "how-to-score-a-domain-name-for-branding",
       "how-to-pick-a-domain-name-that-is-easy-to-say",
-      "alternatives-when-the-domain-name-you-want-is-taken",
+      HISTORY_SLUG,
+      "how-do-ai-assistants-choose-which-brand-to-recommend",
     ],
   },
   {
     slug: "alternatives-when-the-domain-name-you-want-is-taken",
-    question: "Alternatives when the domain name you want is taken",
-    metaTitle: "Alternatives When the Domain Name You Want Is Taken (Compared)",
+    question: "Alternatives when the domain name you want is taken: buy, work around or rename?",
+    metaTitle: "Domain Name Taken? Buy It, Work Around It or Rename",
     metaDescription:
-      "Seven options when your domain is taken — buy it, change extension, add a modifier, add a location, hyphenate, respell or rename — compared on cost, risk and how each changes the name's scores.",
+      "When the domain you want is taken, the owner's situation decides your move: buy it under a walk-away price, use a workaround, or rename. A decision table, plus how to set your ceiling.",
     answer:
-      "You have seven realistic options: buy the domain from its owner or a marketplace, use a different extension, add a short modifier (get, try, hq, app), add your location, hyphenate it, change the spelling, or pick a new name. Buying keeps the brand intact but costs the most; modifiers and alternative extensions are cheap but weaker for word of mouth; if the taken domain is an active business in your field, rename instead.",
+      "Find out who holds the name and what they do with it, because that decides your path. If an active business in your field uses it, rename. If it is parked or listed for sale, set a walk-away price and buy only below it. If it is held but unused and not for sale, a workaround such as another extension or a modifier only makes sense when most customers will reach you through links rather than by typing the name.",
     datePublished: PUBLISHED,
-    dateModified: PUBLISHED,
+    dateModified: REVISED,
     framework: {
-      heading: "How to decide",
-      intro: "Answer these in order. The first 'yes' usually decides the option.",
+      heading: "Decision questions, in order",
+      intro: "Answer these in order. The first clear answer usually decides the path.",
       criteria: [
         {
           name: "Is the taken domain an active business in your category?",
@@ -527,54 +593,69 @@ export const GUIDES: Guide[] = [
         {
           name: "Is it listed for sale?",
           check: "Look for a 'for sale' landing page or a marketplace listing with a buy-now price or an offer form.",
-          inApp: "NameMog shows marketplace listings and premium names with their prices when it finds them.",
+          inApp: "Marketplace listings and premium names are shown with their prices when found.",
         },
         {
-          name: "Who owns it?",
-          check: "Use ICANN Lookup to see the registrar and status; owner contact details are often redacted for privacy.",
+          name: "Who owns it, and is it locked?",
+          check: "ICANN Lookup shows the registrar, dates and status. Owner contact details are often redacted for privacy.",
           inApp: "Not checked.",
         },
         {
           name: "How will customers reach you?",
-          check: "If mainly by spoken word, protect the exact sound; if mainly by links and ads, a modifier or alternative extension costs less.",
-          inApp: "Set your buying intent so weights match how you'll be found.",
+          check: "If mainly by spoken word, protect the exact sound; if mainly by links and ads, a workaround costs less.",
+          inApp: "Set your buying intent so the weights match how you'll be found.",
         },
         {
-          name: "What does the alternative cost in signal?",
-          check: "Score each alternative against the same query so you can see what you're giving up.",
+          name: "What would the workaround cost in score?",
+          check: "Score your best workaround against the same query so you can see exactly what you'd give up.",
           inApp: "Trust and Resale drop with less familiar extensions; Brand Strength drops as labels get longer.",
         },
       ],
     },
-    signals: ["brand", "search", "trust", "resale"],
+    signalsHeading: "Scores that help you price the decision",
+    signalNotes: [
+      { key: "trust", note: "Shows the cost of a different extension in one number (.com 100, .net 85, .io 75, .co 70), which is often the deciding gap between buying and working around." },
+      { key: "brand", note: "Drops as a modifier lengthens the label past 12 characters, so it shows when a workaround stops reading like a brand." },
+      { key: "resale", note: "Worth checking before you pay a premium: it shows whether the exact name would hold its structural value if you ever sold it." },
+    ],
     table: {
-      heading: "Options compared",
-      caption: "Effects on NameMog scores follow from how each signal is computed; actual scores depend on the specific name and your query.",
-      columns: ["Option", "Best when", "Cost / effort", "Main risk", "Effect on NameMog scores"],
+      heading: "What the owner's situation tells you to do",
+      caption: "Match what you find to a row. If two rows fit, take the more cautious path.",
+      columns: ["Situation", "What you see", "Path", "First move"],
       rows: [
-        ["Buy the exact domain", "It's listed for sale or the owner isn't using it", "Highest; negotiation can take weeks", "Overpaying; check history before buying", "Unchanged; you keep the original name"],
-        ["Different extension (.co, .io, .net)", "Customers click more than they type", "Low", "Visitors type .com out of habit and reach the other owner", "Trust and Resale fall (.com 100, .net 85, .io 75, .co 70)"],
-        ["Add a modifier (get, try, hq, app)", "Product or app brand", "Low", "Feels secondary if the base .com is well known", "Longer label lowers Brand clarity past 12 characters"],
-        ["Add your location", "You serve one city or region", "Low", "Limits you if you expand", "Search Relevance rises for local queries"],
-        ["Hyphenate it", "Rarely; mainly a backup to redirect", "Low", "People drop the hyphen when typing", "Brand Strength lower for brand intents; Trust −3"],
-        ["Change the spelling", "The respelling is obvious from the sound", "Low", "Fails the radio test; leaks traffic to the original", "Little change; the score can't hear the problem"],
-        ["Pick a new name", "Taken domain is an active brand in your field", "Medium (new brainstorm)", "Time", "Fresh scores; often the cleanest result"],
+        ["Active business in your field", "A live site selling something like what you sell", "Rename", "Start a new shortlist; don't build on a variant"],
+        ["Active business in another field", "A live site in an unrelated industry", "Work around, carefully", "Check the trademark register in your class before using a variant"],
+        ["Listed with a price", "Marketplace listing or buy-now landing page", "Buy if under your ceiling", "Audit its history, then buy through the marketplace transfer"],
+        ["Parked, taking offers", "Ad page or 'make an offer' form", "Negotiate with a ceiling", "Set your walk-away price first; expect weeks"],
+        ["Redirects to a bigger company", "The domain forwards to another brand's site", "Rename", "Assume it's a kept brand asset; for example, brightnest.com forwards to angi.com"],
+        ["No site, near expiry", "ICANN Lookup shows an expiry date close by and no renewal", "Watch, with a fallback", "Place a backorder and keep your workaround ready"],
       ],
     },
+    steps: {
+      heading: "How to set a walk-away price",
+      items: [
+        "Price your best available workaround: its cost plus what you'd spend explaining a less obvious name (a tagline, extra ad copy, a second domain to redirect).",
+        "Add what the exact name saves you: type-in visitors who would otherwise reach the current owner, and the cost of renaming later if the workaround doesn't hold up.",
+        "That total is your ceiling. Write it down before you contact the seller.",
+        "Open below the ceiling and walk away if the price passes it. Your workaround is already scored and ready to buy.",
+      ],
+    },
+    whenNotHeading: "When not to buy the taken domain, even if it's for sale",
     whenNot: [
-      "Don't use a modifier, hyphen or different extension when the original domain belongs to an active company in your industry.",
-      "Don't buy a taken domain without checking its history in the Wayback Machine and confirming the seller can transfer it.",
-      "Don't respell a word (dropping vowels, swapping letters) unless the new spelling is the only one people would type.",
+      "When the seller can't show they control it and the marketplace or registrar can't confirm the transfer.",
+      "When the history audit finds spam, malware, a blocklist entry or a manual action you'd inherit.",
+      "When the price is above your walk-away number. The workaround you already scored is the better deal.",
     ],
+    mistakesHeading: "Negotiation and workaround mistakes",
     mistakes: [
       "Settling on the .net when a competitor owns the .com in the same field; their site gets your type-in traffic.",
-      "Making a first offer before you know your walk-away price. Decide what your best free alternative is worth first.",
+      "Making a first offer before you know your walk-away price.",
       "Stacking fixes (hyphen + modifier + new extension) until the name no longer resembles a brand.",
-      "Assuming a newer extension will rank better because it contains a keyword. Google says it doesn't.",
+      "Contacting the owner from a well-known company address before you've decided; it signals a funded buyer.",
     ],
     nextStep: {
-      text: "Enter your name or business description in NameMog. Taken names stay visible as benchmarks, but recommendations come only from buyable alternatives, so you can see what each workaround costs in score.",
-      links: [SEARCH_CTA, COMPARE_EXAMPLE],
+      text: "Enter the taken name or your business description. Taken names stay visible as benchmarks, and only buyable alternatives are recommended, so you can see what each workaround costs in score before you set your ceiling.",
+      links: [SEARCH_CTA, { href: "/guides/how-to-find-a-domain-name-similar-to-a-taken-one", label: "Generate close variants" }],
     },
     faqs: [
       {
@@ -586,17 +667,18 @@ export const GUIDES: Guide[] = [
         a: "Use ICANN Lookup, which returns registration data over RDAP: registrar, dates and status. Owner contact details are often redacted, in which case contact the owner through the registrar or a for-sale page.",
       },
       {
-        q: "Is it OK to use .co or .io if the .com is taken?",
-        a: "It can be, especially for tech products whose customers arrive through links. The risk is that people type .com by habit and land on someone else's site, so weigh how much of your traffic will come from spoken word.",
+        q: "What if the domain I want is about to expire?",
+        a: "Check its expiry date and status in ICANN Lookup, but don't plan around it dropping: many owners renew at the last minute, and an expired name is usually held for a period before it is released. Place a backorder if you want it and keep your fallback ready.",
       },
       {
         q: "How does buying through the NameSilo Marketplace work?",
         a: "According to NameSilo's support page, sellers can set a buy-now price, run an auction or take offers, and some sales support payment plans. Domains with a buy-now price can be purchased immediately.",
       },
     ],
-    sources: [ICANN_LOOKUP, NAMESILO_MARKETPLACE, GOOGLE_NEW_TLDS, WAYBACK],
+    sources: [ICANN_LOOKUP, NAMESILO_MARKETPLACE],
     related: [
       "how-to-find-a-domain-name-similar-to-a-taken-one",
+      HISTORY_SLUG,
       "how-to-shortlist-domain-names-for-a-new-company",
       "what-signals-make-a-domain-name-valuable",
     ],
@@ -604,13 +686,13 @@ export const GUIDES: Guide[] = [
   {
     slug: "how-to-find-a-domain-name-similar-to-a-taken-one",
     question: "How to find a domain name similar to a taken one",
-    metaTitle: "How to Find a Domain Name Similar to a Taken One",
+    metaTitle: "How to Find a Domain Name Similar to a Taken One (6 Methods)",
     metaDescription:
-      "A systematic variation method for finding an available domain close to a taken one, scoring the variants against the same query, and avoiding names that look like copies.",
+      "Six ways to generate an available domain close to a taken one (extension swap, prefix, suffix, reorder, synonym, location), how to score the variants fairly, and which ones look like copies.",
     answer:
-      "Keep the part of the name that carries the meaning and vary the rest systematically: swap the extension, add a short prefix or suffix, reorder the words, swap in a synonym, or combine your core word with a new one. Then score every variant against the same query so you compare like with like, and drop any variant a customer could confuse with the original owner.",
+      "Keep the word that carries the meaning and generate variants with six methods: swap the extension, add a prefix, add a suffix or descriptor, reorder the words, swap in a synonym, or add a place. Make several of each, score every variant against the same query so the numbers are comparable, and drop any variant a customer could mistake for the original owner. Whether to use a variant at all is a separate question, answered by the owner's situation.",
     datePublished: PUBLISHED,
-    dateModified: PUBLISHED,
+    dateModified: REVISED,
     framework: {
       heading: "Variant quality checklist",
       intro: "Each variant has to pass these before it's worth comparing.",
@@ -633,7 +715,7 @@ export const GUIDES: Guide[] = [
         {
           name: "Reads naturally",
           check: "No awkward reversed word order or repeated words.",
-          inApp: "NameMog's generator rejects awkward reversals of your query, repeated roots and repeated concepts.",
+          inApp: "The generator rejects awkward reversals of your query, repeated roots and repeated concepts.",
         },
         {
           name: "Actually buyable",
@@ -642,25 +724,42 @@ export const GUIDES: Guide[] = [
         },
       ],
     },
-    signals: ["brand", "search", "trust"],
+    signalsHeading: "How the scores treat each kind of variant",
+    signalNotes: [
+      { key: "brand", note: "Prefixes and suffixes cost points once the label passes 12 characters, so getbrightnest (13) already scores lower than brightnest (10)." },
+      { key: "search", note: "Rises when a suffix or location adds one of your query words and falls when a synonym swap removes one, which makes it the quickest way to see whether a variant kept the meaning." },
+      { key: "trust", note: "Is the only score an extension swap changes, so use it to price that method on its own." },
+    ],
+    steps: {
+      heading: "A 20-minute variant session",
+      items: [
+        "Write the taken name and circle the one word you can't lose (for brightnest.com, 'nest').",
+        "Make two variants with each of the six methods in the table below: twelve names.",
+        "Add the modifiers that suit your product: get, try or use for apps; hq, labs or co for companies; your city or region for local services.",
+        "Run all twelve through one search with the same query, so every score is measured against the same words.",
+        "Cross out any variant someone could confuse with the original owner, then keep the top three for a comparison.",
+      ],
+    },
     table: {
       heading: "Variation methods",
-      caption: "Illustrative variants of brightnest.com, a demo domain shown as taken in NameMog. Availability of the variants is not implied.",
+      caption: "Illustrative variants of brightnest.com, a demo domain shown as taken in the search. Availability of the variants is not implied.",
       columns: ["Method", "Example", "What you keep", "Watch out for"],
       rows: [
         ["Swap extension", "brightnest.co", "The exact label", "Type-in traffic going to the .com"],
-        ["Prefix", "getbrightnest.com", "The whole brand word", "Longer label; feels secondary"],
-        ["Suffix / descriptor", "brightnesthome.com", "Brand word plus category", "Length; repeated concepts"],
+        ["Prefix (get, try, use, my)", "getbrightnest.com", "The whole brand word", "Longer label; feels secondary"],
+        ["Suffix / descriptor (hq, labs, home)", "brightnesthome.com", "Brand word plus category", "Length; repeated concepts"],
         ["Reorder", "nestbright.com", "Both words", "Unnatural phrasing"],
         ["Synonym swap", "brightroost.com", "Structure and tone", "Loses the original meaning"],
         ["Location", "brightnestdenver.com", "Brand word plus place", "Limits expansion"],
       ],
     },
+    whenNotHeading: "When a close variant is the wrong move",
     whenNot: [
-      "Don't build on a variant when the taken domain is an active company in your field. Rename instead.",
-      "Don't use deliberate misspellings of another company's domain. That's typosquatting, and it invites legal action.",
-      "Don't keep adding words to force availability. Past three words the name stops working as a brand.",
+      "When the taken domain is an active company in your field. Rename instead.",
+      "When the only available variants are deliberate misspellings of another company's domain. That's typosquatting, and it invites legal action.",
+      "When you need a third word to find anything available. Past three words the name stops working as a brand.",
     ],
+    mistakesHeading: "Variant mistakes",
     mistakes: [
       "Comparing variants against different queries, so the scores aren't comparable.",
       "Picking the variant with the best extension but the worst name.",
@@ -668,7 +767,7 @@ export const GUIDES: Guide[] = [
       "Forgetting to say the variant out loud; prefixes and suffixes can create awkward sounds.",
     ],
     nextStep: {
-      text: "Type the taken name or your business description into NameMog. It generates variants in several naming styles, keeps taken names as benchmarks and scores the buyable ones against your query so you can compare them directly.",
+      text: "Type the taken name or your business description into the search. It generates variants in several naming styles, keeps taken names as benchmarks and scores the buyable ones against your query.",
       links: [SEARCH_CTA, COMPARE_EXAMPLE],
     },
     faqs: [
@@ -684,8 +783,12 @@ export const GUIDES: Guide[] = [
         q: "Should I add 'get' or 'try' to a taken domain?",
         a: "It works well for apps and products where the call to action fits. For a company name you'll say out loud, it can sound like a workaround; score it next to a fresh name before committing.",
       },
+      {
+        q: "Does changing only the extension count as a similar domain?",
+        a: "Yes. It's the simplest variant and the riskiest for word of mouth, because people who hear the name will type .com. It works best when customers arrive through links you control, such as an app store page or ads.",
+      },
     ],
-    sources: [ICANN_LOOKUP],
+    sources: [ICANN_LOOKUP, USPTO_SEARCH],
     related: [
       "alternatives-when-the-domain-name-you-want-is-taken",
       "how-to-pick-a-domain-name-that-is-easy-to-say",
@@ -694,14 +797,14 @@ export const GUIDES: Guide[] = [
   },
   {
     slug: "how-do-ai-assistants-choose-which-brand-to-recommend",
-    question: "How do AI assistants choose which brand to recommend?",
-    metaTitle: "How Do AI Assistants Choose Which Brand to Recommend?",
+    question: "How do AI assistants choose which brand to recommend, and does your domain name matter?",
+    metaTitle: "Does Your Domain Name Affect AI Assistant Brand Recommendations?",
     metaDescription:
-      "What actually shapes AI assistant brand recommendations — training data, retrieved web pages and clear entity signals — what you can control, and how small a role the domain name plays.",
+      "What shapes AI assistant brand recommendations (training data, retrieved pages, clear entity signals), what you can control, and how small a part your domain name plays.",
     answer:
       "There is no published ranking formula. Assistants generate answers from what their model learned in training and, when they search the web, from the pages they retrieve, so brands that are described consistently across many independent sources, and whose own pages state clearly what they are and who they serve, are easier to name with confidence. Your domain name plays a small part: a distinct, unambiguous name makes it easier to tie mentions back to you, but it won't earn recommendations on its own.",
     datePublished: PUBLISHED,
-    dateModified: PUBLISHED,
+    dateModified: REVISED,
     framework: {
       heading: "Entity clarity checklist",
       intro: "These are the parts you control. None guarantees a recommendation; together they make your brand easier to identify and describe.",
@@ -733,7 +836,11 @@ export const GUIDES: Guide[] = [
         },
       ],
     },
-    signals: ["ai", "marketing"],
+    signalsHeading: "What the AI/Entity Clarity score does and doesn't tell you",
+    signalNotes: [
+      { key: "ai", note: "Estimates how easily the name splits into clear words that describe an entity; it never queries an assistant, so treat it as a naming check, not a visibility metric." },
+      { key: "marketing", note: "Helps when you want the name itself to hint at your category, which gives an assistant one more clue about what you do." },
+    ],
     table: {
       heading: "What influences a recommendation, and where the domain fits",
       caption: "General factors; individual assistants differ and don't publish their methods.",
@@ -746,11 +853,13 @@ export const GUIDES: Guide[] = [
         ["Fit to the user's question", "Being specific about who you serve", "Small: a descriptive name can hint at category"],
       ],
     },
+    whenNotHeading: "When changing your domain won't help AI recommendations",
     whenNot: [
-      "Don't buy a generic keyword domain hoping AI assistants will recommend it. A generic phrase is harder to recognize as one specific company.",
-      "Don't treat any 'AI visibility' score, including NameMog's AI/Entity Clarity, as a measure of how often assistants mention you. NameMog's score is about the name only.",
-      "Don't rebrand to chase AI recommendations if your current name is distinct and consistent. Fix your pages and mentions first.",
+      "When you're tempted by a generic keyword domain. A generic phrase is harder to recognize as one specific company.",
+      "When you'd be relying on an 'AI visibility' score, including AI/Entity Clarity here, as a measure of how often assistants mention you. This score is about the name only.",
+      "When your current name is already distinct and used consistently. Fix your pages and third-party mentions first.",
     ],
+    mistakesHeading: "Entity mistakes that confuse assistants",
     mistakes: [
       "Using different names or spellings across your site and profiles.",
       "Describing yourself with vague slogans instead of saying what you sell.",
@@ -758,122 +867,183 @@ export const GUIDES: Guide[] = [
       "Picking a name that collides with a better-known company, so mentions get attributed to them.",
     ],
     nextStep: {
-      text: "When you're choosing a name, use NameMog's AI/Entity Clarity score alongside Brand Strength to favor names that parse cleanly into a distinct entity, then check that no better-known company already uses it.",
+      text: "When you're choosing a name, read AI/Entity Clarity alongside Brand Strength to favor names that parse cleanly into a distinct entity, then check that no better-known company already uses it.",
       links: [SEARCH_CTA, COMPARE_EXAMPLE],
     },
     faqs: [
       {
-        q: "Does my domain name affect whether ChatGPT or Google's AI recommends my brand?",
-        a: "Only a little. A distinct, consistent name helps systems connect mentions to you, but recommendations depend far more on what's written about you and on your pages being clear and indexable.",
+        q: "Will a keyword domain like bestplumberdenver.com get recommended more?",
+        a: "There's no evidence it would. A generic phrase is harder to recognize as one specific business, and assistants lean on what independent sources say about you. A distinct name that is described consistently gives them more to work with.",
       },
       {
         q: "How do I get my site into Google AI Overviews or AI Mode?",
         a: "Google's documentation says that to be shown as a supporting link, a page must be indexed and eligible to appear in Google Search with a snippet. There's no separate technical requirement beyond normal Search.",
       },
       {
-        q: "What does NameMog's AI/Entity Clarity score mean?",
+        q: "What does the AI/Entity Clarity score mean?",
         a: "It estimates how easily a domain name parses into a clear entity, based on length, how many of your query's words it contains and in what order. It doesn't measure mentions or recommendations by any AI assistant.",
       },
     ],
     sources: [GOOGLE_AI_FEATURES],
     related: [
-      "how-to-check-domain-name-seo-relevance",
       "how-to-score-a-domain-name-for-branding",
+      "how-to-shortlist-domain-names-for-a-new-company",
       "what-signals-make-a-domain-name-valuable",
     ],
   },
   {
-    slug: "how-to-check-domain-name-seo-relevance",
-    question: "How to check domain name SEO relevance",
-    metaTitle: "How to Check Domain Name SEO Relevance (Name, History, Links)",
+    slug: HISTORY_SLUG,
+    question: "How to check a used domain's history before you buy it",
+    metaTitle: "How to Check a Used or Expired Domain's History Before You Buy",
     metaDescription:
-      "Check a domain's SEO relevance in two parts: whether the name fits your topic (a minor factor, per Google) and, for a used domain, whether its history and links fit. Tools, red flags and what to ignore.",
+      "A six-check audit for a previously used or expired domain: Wayback Machine snapshots, registration data, backlinks, blocklists, Google manual actions and trademarks, with a worked example.",
     answer:
-      "Check two separate things: whether the name itself matches what you do, and, if the domain was used before, whether its history and inbound links fit your topic. Google says keywords in a domain name have hardly any ranking effect beyond breadcrumbs, so name relevance matters mainly for people; for a previously used domain, history and links matter more.",
+      "Run six checks before you pay: read what the domain hosted in the Wayback Machine, look up its registration record in ICANN Lookup, review who links to it, test it against Google Safe Browsing and the Spamhaus Domain Blocklist, search the trademark register for the name, and check Search Console for manual actions as soon as you can verify it. A used domain is worth buying when its past content and links fit what you'll do with it and none of the checks turns up spam, malware or a brand that is still active.",
     datePublished: PUBLISHED,
-    dateModified: PUBLISHED,
+    dateModified: REVISED,
     framework: {
-      heading: "SEO relevance checks",
-      intro: "Run the name checks for every candidate. Run the history checks for any domain that was registered before.",
+      heading: "The six checks",
+      intro: "Do them in this order. The first two take minutes and often settle the question on their own.",
       criteria: [
         {
-          name: "Name matches your topic",
-          check: "Does the name contain or clearly suggest what you do, so searchers recognize it in results?",
-          inApp: "Search Relevance: share of your query's words in the name, word order, location and clarity.",
+          name: "1. Past content",
+          check: "Open the Wayback Machine calendar for the domain and read at least one capture from every year it was live. Note changes of topic, language or owner, and any period when it redirected somewhere else.",
+          inApp: "Not scored. The scores read the name only.",
         },
         {
-          name: "Extension fits your market",
-          check: "Only matters for SEO if you target one country, where a country-code extension can help geotargeting.",
-          inApp: "NameMog adds +5 for .com and +2 for .net in Search Relevance as a type-in habit proxy; Google says it doesn't care which generic TLD you use.",
+          name: "2. Registration record",
+          check: "ICANN Lookup shows the creation and expiry dates, the registrar and status codes. A corporate brand-protection registrar or 'transfer prohibited' locks mean the name is being held on purpose.",
+          inApp: "Not checked.",
         },
         {
-          name: "Past use fits your topic",
-          check: "Look at old snapshots. Unrelated, spammy or adult past use is a red flag.",
-          inApp: "Not checked. Use the Wayback Machine.",
+          name: "3. Backlink profile",
+          check: "In a backlink tool, note the referring domains, what the linking sites are about and the anchor text. Links from your field are an asset; casino, pharma or foreign-language anchors are a cleanup job.",
+          inApp: "Not checked.",
         },
         {
-          name: "Inbound links fit your topic",
-          check: "Are linking sites in your field? Are anchors natural, or full of unrelated terms?",
-          inApp: "Not checked. Use a backlink tool.",
+          name: "4. Blocklists",
+          check: "Look the domain up in Google Safe Browsing site status and on Spamhaus. A listing means browsers or mail filters may already block it.",
+          inApp: "Not checked.",
         },
         {
-          name: "Currently indexed",
-          check: "A site: search shows whether pages are in Google's index. After you own it, Search Console shows manual actions.",
+          name: "5. Manual actions",
+          check: "The Manual actions report is only visible to verified owners in Search Console. Ask the seller for a screenshot, or verify the domain the day it transfers.",
+          inApp: "Not checked.",
+        },
+        {
+          name: "6. Trademark",
+          check: "Search the trademark register for the name in your class. A past owner that was a real business may still hold the mark after letting the domain go.",
           inApp: "Not checked.",
         },
       ],
     },
-    signals: ["search", "marketing"],
+    signalsHeading: "Why the name scores can't see a domain's past",
+    signalNotes: [
+      { key: "trust", note: "Reflects how familiar the extension is, not the domain's reputation: a .com with a spam past still scores 100, which is why this audit exists." },
+      { key: "resale", note: "Is structural and blind to links and history, so a clean audit with strong, relevant links can make a used name worth more than its score suggests." },
+    ],
     table: {
-      heading: "Checks, tools and red flags",
-      caption: "Free checks first; paid backlink tools are optional for most new-business domains.",
-      columns: ["Check", "Tool", "Good sign", "Red flag"],
+      heading: "Red-flag thresholds",
+      caption: "How to read each check. One 'walk away' result is enough to stop, whatever the price.",
+      columns: ["Check", "Fine", "Investigate", "Walk away"],
       rows: [
-        ["Name fit", "NameMog Search Relevance", "Your core words appear in a natural order", "No query words and no clear meaning"],
-        ["Past content", "Wayback Machine", "Same or related topic, or never used", "Spam, pharma, gambling or unrelated pages"],
-        ["Index status", "site:example.com in Google", "Results match the domain's current use", "Nothing at all for a domain with a long history"],
-        ["Inbound links", "Backlink tool (Moz, Ahrefs, Semrush)", "Links from related sites", "Many links from unrelated or low-quality sites"],
-        ["Manual actions", "Google Search Console (after purchase)", "No manual actions", "Active manual action"],
+        ["Past content", "Same or neighbouring topic, or parked only", "An unrelated but legitimate business", "Pharma, casino, adult, scraped or auto-generated pages, or a sudden switch of language"],
+        ["Backlinks", "Mostly from sites in your field, natural anchors", "Many links from one network, or sitewide footer links", "Most anchors unrelated to the site's past topic, or obvious link farms"],
+        ["Moz Spam Score", "1–30% (Moz calls this low)", "31–60%", "61% or higher"],
+        ["Safe Browsing / Spamhaus", "Not listed", "Listed in the past, now clear", "Listed now; make delisting a condition of sale"],
+        ["Manual actions", "None", "Resolved in the past", "An active manual action"],
+        ["Trademark", "No live mark in your class", "A live mark in another class", "A live mark in your class"],
       ],
     },
+    example: {
+      heading: "Worked example: auditing brightnest.com",
+      intro:
+        "brightnest.com is the demo name the search shows as taken. Here is what each check returned when we ran it on 5 November 2026.",
+      table: {
+        heading: "brightnest.com audit results",
+        caption: "Checked 5 November 2026. Wayback dates are capture dates, so changes happened on or before them.",
+        columns: ["Check", "What we found", "What it means"],
+        rows: [
+          [
+            "Wayback Machine",
+            "First capture 8 May 2011, titled \"BrightNest | A website that makes it easy to be a good homeowner\". From 2014 to a capture on 12 December 2019 the title was \"BrightNest | The Brighter Side of Home Maintenance\". By 2 January 2020 it redirected to angieslist.com/brightnest/, and by September 2023 to angi.com.",
+            "A genuine home-maintenance publisher that was folded into a larger home-services brand. Topically clean, but acquired rather than abandoned.",
+          ],
+          [
+            "ICANN Lookup (RDAP)",
+            "Created 20 April 2011, expires 20 April 2027. Registrar Lexsynergy Limited. Status: client delete, transfer and update prohibited.",
+            "Locked and renewed through a corporate registrar: held deliberately and not about to drop.",
+          ],
+          [
+            "Live response",
+            "Both http and https return a 301 redirect to https://www.angi.com/.",
+            "The owner uses it to pass visitors and link equity to its main site.",
+          ],
+          [
+            "Backlinks (Moz, crawled 27 Oct 2026)",
+            "3,859 referring root domains and 18,397 linking pages to the root domain. Domain Authority 60, Spam Score 5%.",
+            "A strong, low-spam profile, which is exactly why the owner keeps the redirect in place.",
+          ],
+          [
+            "Google Safe Browsing",
+            "No unsafe content found.",
+            "Clean.",
+          ],
+          [
+            "Spamhaus Domain Blocklist",
+            "Not listed (the DNS lookup returned no record; the test domain did).",
+            "Clean.",
+          ],
+          [
+            "Manual actions and trademark",
+            "Not run: manual actions need the owner's Search Console, and the trademark search depends on your class.",
+            "With an active owner redirecting it, assume any brand rights sit with them.",
+          ],
+        ],
+      },
+      verdict:
+        "Verdict: a clean history, but not a purchase. Every check points to a name kept as part of an active brand, so the realistic move is a different name rather than an offer. Had the same history turned up on a domain listed for sale, its relevant links and clean record would make it a strong candidate for a home-services business.",
+    },
+    whenNotHeading: "When you can skip most of the history audit",
     whenNot: [
-      "Don't pay extra for an exact-match keyword domain on SEO grounds alone. Google says the keywords in the domain have hardly any ranking effect.",
-      "Don't pick a newer extension because it contains your keyword. Google treats new gTLDs like other gTLDs and says keywords in a TLD give no advantage.",
-      "Don't buy a used domain for its links without reviewing them; irrelevant links are not an asset.",
+      "When the Wayback Machine has no captures and a backlink tool finds no referring domains. There is no history to audit; just run the trademark search.",
+      "When you're buying a misspelling only to redirect it to your main site. Check the blocklists and skip the deep link review.",
+      "When the name already fails your shortlist for other reasons. Don't spend an hour auditing a name you wouldn't use.",
     ],
+    mistakesHeading: "Audit mistakes",
     mistakes: [
-      "Treating a high keyword-match score as a ranking prediction.",
-      "Skipping the history check on a domain that looks fresh but was used years ago.",
-      "Keyword-stuffing the name (three or four search terms glued together); it reads as spam to people and is harder to remember.",
-      "Ignoring that your content and links will determine rankings far more than the name.",
+      "Reading only the latest Wayback capture. Problems tend to sit in the gap between two owners.",
+      "Counting referring domains without opening any. A thousand links from one network are worth less than twenty from your field.",
+      "Treating a high Domain Authority as proof of quality. It measures link strength, not topic fit or spam.",
+      "Paying before the transfer is confirmed, then finding the domain locked at a corporate registrar.",
     ],
     nextStep: {
-      text: "Score your candidates in NameMog with an SEO content intent to rank by Search Relevance, then run the history checks above on your top picks before buying.",
-      links: [SEARCH_CTA, COMPARE_EXAMPLE],
+      text: "Score names first so you only audit finalists. Taken names stay visible as benchmarks next to buyable alternatives, so you can see what walking away from a name would cost.",
+      links: [SEARCH_CTA, { href: "/guides/alternatives-when-the-domain-name-you-want-is-taken", label: "Decide whether to buy or rename" }],
     },
     faqs: [
       {
-        q: "Do keywords in a domain name help SEO?",
-        a: "Barely. Google's SEO Starter Guide says keywords in the domain name alone have hardly any effect beyond appearing in breadcrumbs. They can still help people recognize what you do.",
+        q: "How far back should I look in the Wayback Machine?",
+        a: "Every year the domain resolved. Spam often sits in a short window between two legitimate owners, so skim one capture per year and read closely around any change of title, language or redirect target.",
       },
       {
-        q: "Does the domain extension affect Google rankings?",
-        a: "Generally no. Google says it doesn't care which TLD you use unless you're targeting a specific country, where a country-code domain is usually a low-impact signal.",
+        q: "Do old backlinks still help after a domain changes hands?",
+        a: "They can, if the new site continues the same subject. Google's spam policies name 'expired domain abuse': buying an expired domain and repurposing it mainly to manipulate rankings with low-value content. Links help a site that genuinely carries on the topic, not one built to exploit them.",
       },
       {
-        q: "How do I check if a domain was penalized?",
-        a: "Before buying, check its history in the Wayback Machine and run a site: search. After you own it, verify it in Google Search Console and look at the Manual actions report.",
+        q: "Can I see a domain's Google manual actions before I buy it?",
+        a: "Not on your own. The Manual actions report is only visible to verified owners in Search Console. Ask the seller for a screenshot or temporary access; if they can't provide it, treat the status as unknown and check the day the domain transfers.",
       },
       {
-        q: "What does NameMog's Search Relevance score measure?",
-        a: "How well the name matches the words in your query: how many appear, whether they're in order, whether your location is included, and label clarity. It doesn't use search volume, backlinks or ranking data.",
+        q: "What should I do if a domain I bought is on a blocklist?",
+        a: "Use the blocklist's lookup page to find out why it was listed, remove the cause, then follow that list's delisting process. For Google Safe Browsing, fix the issue and request a review from the Security issues report in Search Console.",
       },
     ],
-    sources: [GOOGLE_SEO_STARTER, GOOGLE_NEW_TLDS, WAYBACK],
+    sources: [WAYBACK, ICANN_LOOKUP, GOOGLE_SPAM_POLICIES, GOOGLE_MANUAL_ACTIONS, SAFE_BROWSING, SPAMHAUS, MOZ_SPAM_SCORE, USPTO_SEARCH],
     related: [
       "what-signals-make-a-domain-name-valuable",
-      "how-do-ai-assistants-choose-which-brand-to-recommend",
-      "how-to-score-a-domain-name-for-branding",
+      "alternatives-when-the-domain-name-you-want-is-taken",
+      "how-to-shortlist-domain-names-for-a-new-company",
     ],
   },
 ];
