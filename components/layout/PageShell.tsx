@@ -1,6 +1,7 @@
 import { AppHeader } from "./AppHeader";
 import { BottomNav } from "./BottomNav";
 import { SideNav } from "./SideNav";
+import { SiteFooter } from "./SiteFooter";
 
 type PageShellProps = {
   children: React.ReactNode;
@@ -35,7 +36,7 @@ export function PageShell({
         />
         <div className="flex flex-1">
           <main
-            className={`mx-auto w-full flex-1 px-4 pb-24 pt-4 md:px-6 lg:pb-8 lg:pt-6 ${
+            className={`mx-auto w-full flex-1 px-4 pb-8 pt-4 md:px-6 lg:pt-6 ${
               fullWidth ? "max-w-none" : "max-w-[var(--container-max)]"
             } ${rightSidebar ? "xl:pr-0" : ""}`}
           >
@@ -47,6 +48,7 @@ export function PageShell({
             </aside>
           )}
         </div>
+        {!hideNav && <SiteFooter />}
         {!hideNav && <BottomNav />}
       </div>
     </div>

@@ -16,6 +16,7 @@ import {
   getAvailabilityLabel,
   shouldShowPrice,
 } from "@/lib/domains/availability";
+import { getSiteUrl, ogBase, SITE_NAME } from "@/lib/site";
 
 type PageProps = {
   params: Promise<{ name: string }>;
@@ -39,16 +40,17 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   const { q } = await searchParams;
   const domain = slugToDomain(name);
   const candidate = await getDomainData(name, q ?? "Eco Home Tech");
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://namemog.com";
+  const siteUrl = getSiteUrl();
 
   return {
     // Domain reports are generated on demand (the sitemap entries were demo data);
     // keep them out of the index but let crawlers follow their links.
     robots: { index: false, follow: true },
-    title: `${domain} — Domain Signal Report | NameSilo Intelligence`,
+    title: `${domain} — Domain Signal Report`,
     description: `Signal analysis for ${domain}: brand ${candidate.signals.brand}, SEO ${candidate.signals.search}, AI ${candidate.signals.ai}. ${candidate.analysis.recommendedAction}`,
     alternates: { canonical: `${siteUrl}/domain/${name}` },
     openGraph: {
+      ...ogBase(),
       title: `${domain} Domain Signal Report`,
       description: candidate.analysis.recommendedAction,
       type: "article",
@@ -73,19 +75,24 @@ export default async function DomainReportPage({ params, searchParams }: PagePro
     "@type": "Product",
     name: candidate.domain,
     description: candidate.analysis.recommendedAction,
-    offers: {
-      "@type": "Offer",
-      price: candidate.price,
-      priceCurrency: "USD",
-      availability: candidate.available
-        ? "https://schema.org/InStock"
-        : "https://schema.org/OutOfStock",
-    },
+    // Only emit an Offer when a real price is known for a buyable name.
+    ...(showPrice && candidate.price > 0
+      ? {
+          offers: {
+            "@type": "Offer",
+            price: candidate.price,
+            priceCurrency: "USD",
+            availability: candidate.available
+              ? "https://schema.org/InStock"
+              : "https://schema.org/OutOfStock",
+          },
+        }
+      : {}),
   };
 
   return (
     <PageShell
-      headerTitle="NameSilo Intelligence"
+      headerTitle={SITE_NAME}
       showLogo
       showSearch={false}
       rightSidebar={<SignalBars signals={candidate.signals} />}

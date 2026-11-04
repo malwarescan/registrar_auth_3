@@ -170,9 +170,9 @@ export function SearchHeroPanel({
   return (
     <Card padding="lg" className="border border-[var(--outline-variant)] bg-white shadow-sm">
       <div className="max-w-2xl">
-        <h1 className="text-xl font-bold tracking-tight text-[var(--on-surface)] md:text-2xl">
+        <h2 className="text-xl font-bold tracking-tight text-[var(--on-surface)] md:text-2xl">
           Find the strongest domain for your strategy
-        </h1>
+        </h2>
         <p className="mt-2 text-sm leading-relaxed text-[var(--on-surface-variant)]">
           Tell us why you are buying a domain and what you are building. We&apos;ll generate candidates,
           verify availability through NameSilo, then rank them by brand, marketing, SEO, AI visibility,

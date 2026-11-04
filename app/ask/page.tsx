@@ -5,7 +5,10 @@ import { Card } from "@/components/ui/Card";
 
 export const metadata: Metadata = {
   title: "Ask",
+  description: "An AI domain advisor that is not available yet.",
   alternates: { canonical: `${getSiteUrl()}/ask` },
+  // "Coming soon" stub: keep it out of the index until the advisor ships.
+  robots: { index: false, follow: true },
 };
 
 export default function AskPage() {

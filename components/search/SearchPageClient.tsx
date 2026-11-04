@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { PageShell } from "@/components/layout/PageShell";
 import { SignalDashboard } from "@/components/dashboard/SignalDashboard";
@@ -25,7 +25,14 @@ import { useRecentSearches } from "@/lib/search/recent-searches";
 import { useShortlistContext } from "@/lib/shortlist/shortlist-context";
 import { domainToSlug } from "@/lib/shortlist/use-shortlist";
 
-export function SearchPageClient() {
+type SearchPageClientProps = {
+  /** Server-rendered H1 and intro shown above the search form before a search runs. */
+  intro?: ReactNode;
+  /** Server-rendered links to the guides, shown below the launchpad before a search runs. */
+  guides?: ReactNode;
+};
+
+export function SearchPageClient({ intro, guides }: SearchPageClientProps = {}) {
   const router = useRouter();
   const { shortlist } = useShortlistContext();
   const { recent, addRecent } = useRecentSearches();
@@ -133,6 +140,7 @@ export function SearchPageClient() {
   return (
     <PageShell rightSidebar={rightSidebar} fullWidth={!!hasResults}>
       <div className="mx-auto w-full max-w-[var(--container-max)]">
+        {isEmpty && intro}
         {isEmpty ? (
           <div className="grid gap-6 xl:grid-cols-[1fr_280px] xl:gap-8">
             <div className="min-w-0 space-y-8">
@@ -144,6 +152,7 @@ export function SearchPageClient() {
                 onExampleBrief={handleExampleBrief}
               />
               <SearchLaunchpad onExampleBrief={handleExampleBrief} />
+              {guides}
             </div>
             <QuickStartRail
               recent={recent}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { PageShell } from "@/components/layout/PageShell";
+import Link from "next/link";
 import { TradeoffMap } from "@/components/compare/TradeoffMap";
 import { ComparisonMatrix } from "@/components/compare/ComparisonMatrix";
 import { DecisionSummary } from "@/components/compare/DecisionSummary";
@@ -12,6 +12,9 @@ import { useShortlistContext } from "@/lib/shortlist/shortlist-context";
 import { slugToDomain } from "@/lib/shortlist/use-shortlist";
 import { getBuyUrl } from "@/lib/namesilo/urls";
 import { canPurchaseDomain } from "@/lib/domains/availability";
+
+export const EXAMPLE_HREF =
+  "/compare?domains=brightnest-com,smartecohome-com,ecohometech-net&q=smart%20eco%20home";
 
 export function ComparePageClient() {
   const searchParams = useSearchParams();
@@ -52,20 +55,18 @@ export function ComparePageClient() {
   const selected = data?.domains.find((d) => d.domain === selectedDomain);
 
   return (
-    <PageShell headerTitle="Competitive Domain Analysis" backHref="/">
-      <div className="space-y-5">
-        <p className="text-sm text-[var(--on-surface-variant)]">
-          NameSilo Marketplace with integrated domain signal intelligence for brand, SEO, and AI
-          visibility.
-        </p>
-
+    <section aria-label="Your comparison" className="space-y-5">
         {loading && (
           <p className="text-sm text-[var(--on-surface-variant)]">Loading comparison...</p>
         )}
 
         {!loading && !data && (
           <p className="text-sm text-[var(--on-surface-variant)]">
-            Add at least 2 domains to your shortlist or pass domains via URL to compare.
+            Save at least two domains to your shortlist from a search, then come back here.{" "}
+            <Link href={EXAMPLE_HREF} className="font-medium text-[var(--theme-primary)] underline">
+              Or open the example comparison
+            </Link>
+            .
           </p>
         )}
 
@@ -105,7 +106,6 @@ export function ComparePageClient() {
             </div>
           </>
         )}
-      </div>
-    </PageShell>
+    </section>
   );
 }

@@ -1,15 +1,15 @@
 import type { MetadataRoute } from "next";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_SHORT_NAME } from "@/lib/site";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "NameSilo Intelligence",
-    short_name: "NS Intel",
+    name: SITE_NAME,
+    short_name: SITE_SHORT_NAME,
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
     theme_color: "#004a99",
-    description:
-      "Professional NameSilo Marketplace with integrated domain signal intelligence for brand, SEO, and AI visibility.",
+    description: SITE_DESCRIPTION,
     icons: [
       {
         src: "/favicon.ico",

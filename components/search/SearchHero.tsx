@@ -83,7 +83,7 @@ export function SearchHero({
             Find the strongest domain for what you are building
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-[var(--on-surface-variant)] md:text-base">
-            Search a business idea, keyword, current domain, or industry. NameSilo will rank available
+            Search a business idea, keyword, current domain, or industry. NameMog will rank available
             domains by brand strength, SEO fit, AI visibility, trust, price-to-value, and risk.
           </p>
         </div>
