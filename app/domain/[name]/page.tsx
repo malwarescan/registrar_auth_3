@@ -39,7 +39,7 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   const { q } = await searchParams;
   const domain = slugToDomain(name);
   const candidate = await getDomainData(name, q ?? "Eco Home Tech");
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://intel.namesilo.com";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://namemog.com";
 
   return {
     title: `${domain} — Domain Signal Report | NameSilo Intelligence`,
