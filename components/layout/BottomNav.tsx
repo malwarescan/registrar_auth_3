@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Heart, ArrowLeftRight, HelpCircle } from "lucide-react";
+import { Search, Heart, ArrowLeftRight, HelpCircle, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: "/portfolio", label: "Saved", icon: Heart },
   { href: "/compare", label: "Compare", icon: ArrowLeftRight },
   { href: "/ask", label: "Ask", icon: HelpCircle },
+  { href: "/guides", label: "Guides", icon: BookOpen },
 ];
 
 export function BottomNav() {

@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { GUIDES } from "@/lib/guides/guides";
 
 const DEMO_DOMAINS = [
   "brightnest-com",
@@ -23,5 +24,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.9,
   }));
 
-  return [...staticRoutes, ...domainRoutes];
+  const guideRoutes: MetadataRoute.Sitemap = [
+    { url: `${siteUrl}/guides`, lastModified: new Date(), changeFrequency: "weekly" as const, priority: 0.7 },
+    ...GUIDES.map((g) => ({
+      url: `${siteUrl}/guides/${g.slug}`,
+      lastModified: new Date(g.dateModified),
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
+  ];
+
+  return [...staticRoutes, ...guideRoutes, ...domainRoutes];
 }
