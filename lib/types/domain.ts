@@ -55,6 +55,8 @@ export type DomainCandidate = {
   namingLane?: NamingLane;
   generationPass?: GenerationPass;
   seedDomain?: string;
+  /** Date (YYYY-MM-DD) the NameSilo registration price was checked. */
+  priceCheckedAt?: string;
 };
 
 /** Buyable-only decision stack (extended slots optional until Phase 4). */

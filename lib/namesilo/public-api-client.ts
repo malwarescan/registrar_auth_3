@@ -1,5 +1,6 @@
 import type { DomainAvailability } from "@/lib/namesilo/pricing";
 import { parsePrice } from "@/lib/namesilo/pricing";
+import { NAMESILO_PRICES_CHECKED, snapshotTldPrices } from "@/lib/namesilo/price-snapshot";
 
 export type { DomainAvailability } from "@/lib/namesilo/pricing";
 
@@ -164,7 +165,23 @@ export async function checkRegisterAvailability(
   }
 }
 
+/** Live getPrices when available; otherwise the committed snapshot (data/namesilo-prices.json). */
+export async function getTldPricesWithSource(): Promise<{
+  prices: Record<string, number>;
+  checked: string;
+}> {
+  const live = await getLiveTldPrices();
+  if (Object.keys(live).length > 0) {
+    return { prices: live, checked: new Date().toISOString().slice(0, 10) };
+  }
+  return { prices: snapshotTldPrices(), checked: NAMESILO_PRICES_CHECKED };
+}
+
 export async function getTldPrices(): Promise<Record<string, number>> {
+  return (await getTldPricesWithSource()).prices;
+}
+
+async function getLiveTldPrices(): Promise<Record<string, number>> {
   const reply = await namesiloRequest<NameSiloReply>("getPrices");
   const map: Record<string, number> = {};
   if (!reply || reply.code !== "300") return map;

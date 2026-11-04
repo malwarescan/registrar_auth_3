@@ -14,7 +14,7 @@ import { deriveWeightsFromBrief, buildAnalysisQuery } from "@/lib/intelligence/b
 import { OPTIMIZE_PRESETS } from "@/lib/types/domain";
 import {
   checkRegisterAvailability,
-  getTldPrices,
+  getTldPricesWithSource,
   type DomainAvailability,
 } from "@/lib/namesilo/public-api-client";
 import {
@@ -54,7 +54,8 @@ function scoreDomainEntries(
   intent: ReturnType<typeof resolveBuyingIntent>,
   brief: DomainBrief,
   apiConfigured: boolean,
-  hadApiError: boolean
+  hadApiError: boolean,
+  priceCheckedAt?: string
 ): DomainCandidate[] {
   return entries.map((entry) => {
     const { domain } = entry;
@@ -84,6 +85,16 @@ function scoreDomainEntries(
       ...(entry.namingLane ? { namingLane: entry.namingLane } : {}),
       ...(entry.generationPass ? { generationPass: entry.generationPass } : {}),
       ...(entry.seedDomain ? { seedDomain: entry.seedDomain } : {}),
+      ...(resolvedPrice != null
+        ? {
+            // A per-domain price from checkRegisterAvailability is live; a TLD-map price
+            // carries the date of the map it came from (live or snapshot).
+            priceCheckedAt:
+              availabilityEntry?.price != null
+                ? new Date().toISOString().slice(0, 10)
+                : priceCheckedAt,
+          }
+        : {}),
     };
   });
 }
@@ -174,14 +185,18 @@ export async function discoverDomainsFromBrief(
 
   let availabilityMap: Record<string, DomainAvailability> = {};
   let priceMap: Record<string, number> = {};
+  let priceCheckedAt: string | undefined;
   let hadApiError = false;
 
   if (apiConfigured) {
     try {
-      [availabilityMap, priceMap] = await Promise.all([
+      let tldPrices: Awaited<ReturnType<typeof getTldPricesWithSource>>;
+      [availabilityMap, tldPrices] = await Promise.all([
         checkRegisterAvailability(pass1Entries.map((e) => e.domain)),
-        getTldPrices(),
+        getTldPricesWithSource(),
       ]);
+      priceMap = tldPrices.prices;
+      priceCheckedAt = tldPrices.checked;
     } catch (error) {
       console.error("[discoverDomainsFromBrief] availability check failed", error);
       hadApiError = true;
@@ -196,7 +211,8 @@ export async function discoverDomainsFromBrief(
     intent,
     brief,
     apiConfigured,
-    hadApiError
+    hadApiError,
+    priceCheckedAt
   );
 
   const buyableBeforeRegeneration = candidates.filter((c) => canPurchaseDomain(c)).length;
@@ -231,7 +247,8 @@ export async function discoverDomainsFromBrief(
             intent,
             brief,
             apiConfigured,
-            false
+            false,
+            priceCheckedAt
           );
           candidates = mergeRegenerationCandidates(candidates, pass2Candidates);
         } catch (error) {

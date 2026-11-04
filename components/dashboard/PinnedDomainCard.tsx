@@ -9,6 +9,7 @@ import type { PinRecommendation } from "@/lib/types/domain-brief";
 import { getBuyUrl } from "@/lib/namesilo/urls";
 import { domainToSlug } from "@/lib/shortlist/use-shortlist";
 import { canPurchaseDomain, getAvailabilityLabel, shouldShowPrice } from "@/lib/domains/availability";
+import { PriceCheckedNote } from "@/components/ui/PriceCheckedNote";
 
 type PinnedDomainCardProps = {
   recommendation: PinRecommendation;
@@ -53,6 +54,7 @@ export function PinnedDomainCard({
               {domain.priceType === "registration" && (
                 <span className="text-sm font-normal text-[var(--on-surface-variant)]">/yr</span>
               )}
+              <PriceCheckedNote candidate={domain} />
             </p>
           ) : (
             <p className="mt-1 text-lg font-bold">{getAvailabilityLabel(domain.availabilityStatus)}</p>

@@ -8,6 +8,7 @@ import type { DomainCandidate } from "@/lib/types/domain";
 import { useShortlistContext } from "@/lib/shortlist/shortlist-context";
 import { domainToSlug } from "@/lib/shortlist/use-shortlist";
 import { shouldShowPrice, getAvailabilityLabel } from "@/lib/domains/availability";
+import { PriceCheckedNote } from "@/components/ui/PriceCheckedNote";
 
 type DomainCardProps = {
   candidate: DomainCandidate;
@@ -30,6 +31,7 @@ export function DomainCard({ candidate }: DomainCardProps) {
           {showPrice
             ? `$${candidate.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
             : getAvailabilityLabel(candidate.availabilityStatus)}
+          {showPrice && <PriceCheckedNote candidate={candidate} />}
         </span>
       </div>
 

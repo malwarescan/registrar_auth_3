@@ -1,0 +1,56 @@
+{
+  "source": "NameSilo API getPrices",
+  "checked": "2026-11-05",
+  "prices": {
+    "com": {
+      "register": "19.99",
+      "renew": "19.99",
+      "transfer": "11.50"
+    },
+    "net": {
+      "register": "15.95",
+      "renew": "15.95",
+      "transfer": "11.35"
+    },
+    "org": {
+      "register": "10.79",
+      "renew": "14.99",
+      "transfer": "11.99"
+    },
+    "io": {
+      "register": "38.99",
+      "renew": "69.99",
+      "transfer": "53.49"
+    },
+    "ai": {
+      "register": "99.99",
+      "renew": "99.99",
+      "transfer": "245.00"
+    },
+    "co": {
+      "register": "19.49",
+      "renew": "38.99",
+      "transfer": "32.99"
+    },
+    "app": {
+      "register": "10.99",
+      "renew": "16.99",
+      "transfer": "15.99"
+    },
+    "dev": {
+      "register": "10.99",
+      "renew": "14.99",
+      "transfer": "13.99"
+    },
+    "xyz": {
+      "register": "2.79",
+      "renew": "17.29",
+      "transfer": "14.75"
+    },
+    "tech": {
+      "register": "8.99",
+      "renew": "68.99",
+      "transfer": "52.49"
+    }
+  }
+}

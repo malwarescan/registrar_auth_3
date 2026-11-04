@@ -17,6 +17,7 @@ import {
   shouldShowPrice,
 } from "@/lib/domains/availability";
 import { getSiteUrl, ogBase, SITE_NAME } from "@/lib/site";
+import { PriceCheckedNote } from "@/components/ui/PriceCheckedNote";
 
 type PageProps = {
   params: Promise<{ name: string }>;
@@ -113,6 +114,7 @@ export default async function DomainReportPage({ params, searchParams }: PagePro
             {showPrice && candidate.priceType === "registration" && (
               <span className="text-base font-normal text-[var(--on-surface-variant)]">/yr</span>
             )}
+            {showPrice && <PriceCheckedNote candidate={candidate} />}
           </p>
           {canPurchase && (
             <Badge variant="primary" className="mt-2">

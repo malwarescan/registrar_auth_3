@@ -11,6 +11,7 @@ import {
   getAvailabilityLabel,
   shouldShowPrice,
 } from "@/lib/domains/availability";
+import { PriceCheckedNote } from "@/components/ui/PriceCheckedNote";
 
 type DecisionStackProps = {
   stack: DecisionStackData;
@@ -69,6 +70,7 @@ function StackCard({
           {candidate.priceType === "registration" && (
             <span className="text-xs font-normal text-[var(--on-surface-variant)]">/yr</span>
           )}
+          <PriceCheckedNote candidate={candidate} />
         </p>
       ) : (
         <p className="mt-1 text-sm font-medium text-[var(--on-surface-variant)]">

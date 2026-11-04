@@ -20,6 +20,23 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## NameSilo prices
+
+NameMog is run by NameSilo. Registration prices shown in search results come from NameSilo's official API:
+
+- **Live:** when `NAMESILO_API_KEY` is set, each search calls `checkRegisterAvailability` and `getPrices` (cached 5 minutes). Prices are labelled "NameSilo price, checked <date>".
+- **Snapshot:** `data/namesilo-prices.json` (`{source, checked, prices: {tld: {register, renew, transfer}}}`) is the committed copy of `getPrices`. It is used when the live `getPrices` call fails or returns nothing, and for the demo search. It is read through `lib/namesilo/price-snapshot.ts`; do not type NameSilo prices anywhere else.
+- **Refresh the snapshot:** `NAMESILO_API_KEY=... npm run prices:namesilo`, then commit the file. On any API error the file is left unchanged.
+- **Check:** `npm run qa:namesilo-prices` renders a result card and checks the price and label equal the snapshot.
+
+### Setting `NAMESILO_API_KEY` in Railway
+
+1. Open the Railway project, select the NameMog service, then **Variables**.
+2. **New Variable**: name `NAMESILO_API_KEY`, value = the key from NameSilo (Account > API Manager). Mark it sealed if offered.
+3. Save; Railway redeploys. Without the variable, searches show "Availability not checked" and no prices.
+
+Never commit the key or paste it into code, logs or issues.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

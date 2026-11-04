@@ -18,6 +18,7 @@ import {
   shouldShowPrice,
 } from "@/lib/domains/availability";
 import { formatNamingLane } from "@/lib/ui/naming-lane-labels";
+import { PriceCheckedNote } from "@/components/ui/PriceCheckedNote";
 
 type RankedDomainCardProps = {
   candidate: DomainCandidate;
@@ -86,6 +87,7 @@ export function RankedDomainCard({
               {candidate.priceType === "registration" && (
                 <span className="text-sm font-normal text-[var(--on-surface-variant)]">/yr</span>
               )}
+              <PriceCheckedNote candidate={candidate} />
             </p>
           ) : (
             <p className="text-lg font-bold text-[var(--on-surface)]">
