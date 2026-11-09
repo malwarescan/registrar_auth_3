@@ -35,16 +35,20 @@ export function guideJsonLd(guide: Guide) {
         author: org,
         publisher: org,
       },
-      {
-        "@type": "FAQPage",
-        "@id": `${url}#faq`,
-        isPartOf: { "@id": url },
-        mainEntity: guide.faqs.map((f) => ({
-          "@type": "Question",
-          name: f.q,
-          acceptedAnswer: { "@type": "Answer", text: f.a },
-        })),
-      },
+      ...(guide.faqs.length > 0
+        ? [
+            {
+              "@type": "FAQPage",
+              "@id": `${url}#faq`,
+              isPartOf: { "@id": url },
+              mainEntity: guide.faqs.map((f) => ({
+                "@type": "Question",
+                name: f.q,
+                acceptedAnswer: { "@type": "Answer", text: f.a },
+              })),
+            },
+          ]
+        : []),
       {
         "@type": "BreadcrumbList",
         "@id": `${url}#breadcrumb`,

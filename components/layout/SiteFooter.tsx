@@ -6,7 +6,7 @@ import { OPERATOR, OPERATOR_DISCLOSURE, SITE_DESCRIPTION, SITE_NAME } from "@/li
 const FOOTER_GUIDES = [
   { slug: "how-to-shortlist-domain-names-for-a-new-company", label: "Shortlist domain names for a new company" },
   { slug: "how-to-score-a-domain-name-for-branding", label: "Weight a branding scorecard" },
-  { slug: "alternatives-when-the-domain-name-you-want-is-taken", label: "Your domain is taken: buy, work around or rename" },
+  { slug: "alternatives-when-the-domain-name-you-want-is-taken", label: "Your domain is taken: what you can do" },
   { slug: "how-to-check-a-used-domains-history-before-buying", label: "Check a used domain's history" },
 ];
 

@@ -43,6 +43,25 @@ const muted = "text-[var(--on-surface-variant)]";
 const card = "rounded-[var(--radius-lg)] border border-[var(--outline-variant)] bg-white p-4";
 const link = "font-medium text-[var(--theme-primary)] underline";
 
+/** Renders [label](https://url) links inside guide prose; everything else stays plain text. */
+function Inline({ text }: { text: string }) {
+  const parts = text.split(/(\[[^\]]+\]\([^)\s]+\))/g);
+  return (
+    <>
+      {parts.map((part, i) => {
+        const m = part.match(/^\[([^\]]+)\]\(([^)\s]+)\)$/);
+        if (!m) return part;
+        const [, label, href] = m;
+        return href.startsWith("/") ? (
+          <Link key={i} href={href} className={link}>{label}</Link>
+        ) : (
+          <a key={i} href={href} rel="noopener" className={link}>{label}</a>
+        );
+      })}
+    </>
+  );
+}
+
 export default async function GuidePage({ params }: PageProps) {
   const { slug } = await params;
   const guide = getGuide(slug);
@@ -67,12 +86,33 @@ export default async function GuidePage({ params }: PageProps) {
 
         <header className="space-y-3">
           <h1 className="text-2xl font-bold md:text-3xl">{guide.question}</h1>
-          <p className="text-lg leading-relaxed">{guide.answer}</p>
+          {(Array.isArray(guide.answer) ? guide.answer : [guide.answer]).map((para) => (
+            <p key={para} className="text-lg leading-relaxed"><Inline text={para} /></p>
+          ))}
           <p className={`text-xs ${muted}`}>
             Updated <time dateTime={guide.dateModified}>{guide.dateModified}</time> · {SITE_NAME}
           </p>
         </header>
 
+        {guide.sections?.map((sec) => (
+          <section key={sec.heading} className="space-y-3">
+            <h2 className={h2}>{sec.heading}</h2>
+            {sec.paragraphs.map((para) => (
+              <p key={para} className="leading-relaxed"><Inline text={para} /></p>
+            ))}
+          </section>
+        ))}
+
+        {guide.conditions && (
+          <section className="space-y-3">
+            <h2 className={h2}>{guide.conditions.heading}</h2>
+            {guide.conditions.paragraphs.map((para) => (
+              <p key={para} className="leading-relaxed"><Inline text={para} /></p>
+            ))}
+          </section>
+        )}
+
+        {guide.framework && (
         <section className="space-y-3">
           <h2 className={h2}>{guide.framework.heading}</h2>
           <p className={muted}>{guide.framework.intro}</p>
@@ -97,6 +137,7 @@ export default async function GuidePage({ params }: PageProps) {
             </table>
           </div>
         </section>
+        )}
 
         {guide.steps && (
           <section className="space-y-3">
@@ -173,6 +214,7 @@ export default async function GuidePage({ params }: PageProps) {
           </section>
         )}
 
+        {guide.signalNotes && guide.signalNotes.length > 0 && (
         <section className="space-y-3">
           <h2 className={h2}>{guide.signalsHeading}</h2>
           <ul className="list-disc space-y-2 pl-6">
@@ -190,7 +232,9 @@ export default async function GuidePage({ params }: PageProps) {
             <Link href="/methodology" className={link}>Full definitions of every score</Link>.
           </p>
         </section>
+        )}
 
+        {guide.whenNot && guide.whenNot.length > 0 && (
         <section className="space-y-3">
           <h2 className={h2}>{guide.whenNotHeading}</h2>
           <ul className="list-disc space-y-2 pl-6">
@@ -199,9 +243,10 @@ export default async function GuidePage({ params }: PageProps) {
             ))}
           </ul>
         </section>
+        )}
 
-        
-<section className="space-y-3">
+        {guide.mistakes && guide.mistakes.length > 0 && (
+        <section className="space-y-3">
           <h2 className={h2}>{guide.mistakesHeading}</h2>
           <ul className="list-disc space-y-2 pl-6">
             {guide.mistakes.map((m) => (
@@ -209,10 +254,11 @@ export default async function GuidePage({ params }: PageProps) {
             ))}
           </ul>
         </section>
+        )}
 
         <section className={`${card} space-y-3 bg-[var(--surface-container-low)]`}>
           <h2 className={h2}>Next step</h2>
-          <p>{guide.nextStep.text}</p>
+          <p><Inline text={guide.nextStep.text} /></p>
           <div className="flex flex-wrap gap-3">
             {guide.nextStep.links.map((l, i) => (
               <Link
@@ -230,6 +276,7 @@ export default async function GuidePage({ params }: PageProps) {
           </div>
         </section>
 
+        {guide.faqs.length > 0 && (
         <section className="space-y-3">
           <h2 className={h2}>Frequently asked questions</h2>
           <div className="space-y-4">
@@ -241,6 +288,7 @@ export default async function GuidePage({ params }: PageProps) {
             ))}
           </div>
         </section>
+        )}
 
         {guide.sources.length > 0 && (
           <section className="space-y-2">

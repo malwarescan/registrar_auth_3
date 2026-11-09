@@ -18,33 +18,44 @@ export type GuideFaq = { q: string; a: string };
 
 export type GuideLink = { href: string; label: string };
 
+/**
+ * One self-contained section of an answer page. The heading is the buyer's
+ * question; the first paragraph answers it. Paragraphs may contain inline
+ * links written as [label](https://url).
+ */
+export type GuideSection = { heading: string; paragraphs: string[] };
+
 export type Guide = {
   slug: string;
   /** H1 — the question exactly as people ask it. */
   question: string;
   metaTitle: string;
   metaDescription: string;
-  /** Direct 2–3 sentence answer shown as the first paragraph. */
-  answer: string;
+  /** Direct answer shown as the first paragraph(s). Answer pages may use several paragraphs and [label](url) links. */
+  answer: string | string[];
   datePublished: string;
   dateModified: string;
-  framework: {
+  /** Answer pages: one section per buyer question, rendered right after the answer. */
+  sections?: GuideSection[];
+  /** Answer pages: when the answer changes, for whom, and what to check. */
+  conditions?: GuideSection;
+  framework?: {
     heading: string;
     intro: string;
     criteria: GuideCriterion[];
   };
   /** Guide-specific H2 for the scores section. */
-  signalsHeading: string;
+  signalsHeading?: string;
   /** One guide-specific sentence per score this guide relies on (full definitions live on /methodology). */
-  signalNotes: { key: SignalKey; note: string }[];
+  signalNotes?: { key: SignalKey; note: string }[];
   table?: GuideTable;
   steps?: { heading: string; items: string[] };
   /** Optional worked example with real, dated data. */
   example?: { heading: string; intro: string; table: GuideTable; verdict: string };
-  whenNotHeading: string;
-  whenNot: string[];
-  mistakesHeading: string;
-  mistakes: string[];
+  whenNotHeading?: string;
+  whenNot?: string[];
+  mistakesHeading?: string;
+  mistakes?: string[];
   nextStep: { text: string; links: GuideLink[] };
   faqs: GuideFaq[];
   sources: GuideLink[];
@@ -90,7 +101,7 @@ const ICANN_LOOKUP = {
 };
 const NAMESILO_MARKETPLACE = {
   href: "https://www.namesilo.com/support/v2/articles/account-options/marketplace",
-  label: "NameSilo support: Marketplace",
+  label: "NameSilo support: Marketplace (7.5% seller commission, checked 9 November 2026)",
 };
 const WAYBACK = { href: "https://web.archive.org/", label: "Internet Archive Wayback Machine" };
 
@@ -573,109 +584,124 @@ export const GUIDES: Guide[] = [
   },
   {
     slug: "alternatives-when-the-domain-name-you-want-is-taken",
-    question: "Alternatives when the domain name you want is taken: buy, work around or rename?",
-    metaTitle: "Domain Name Taken? Buy It, Work Around It or Rename",
+    question: "What can I do when the domain name I want is taken?",
+    metaTitle: "Domain Name Taken? Buy It, Backorder It or Pick an Alternative (2026)",
     metaDescription:
-      "When the domain you want is taken, the owner's situation decides your move: buy it under a walk-away price, use a workaround, or rename. A decision table, plus how to set your ceiling.",
-    answer:
-      "Find out who holds the name and what they do with it, because that decides your path. If an active business in your field uses it, rename. If it is parked or listed for sale, set a walk-away price and buy only below it. If it is held but unused and not for sale, a workaround such as another extension or a modifier only makes sense when most customers will reach you through links rather than by typing the name.",
+      "When the domain you want is taken, you can register another extension or a variation, buy it from the owner, backorder it in case it expires, or file a UDRP complaint if it copies your trademark. Prices and ICANN timelines checked 9 November 2026.",
+    answer: [
+      "When the domain name you want is taken, you have five options: register the same name in another extension, register a close variation, buy the name from its current owner, backorder it in case the owner lets it expire, or file a UDRP complaint if the name copies your trademark in bad faith. Start by looking the domain up in [ICANN Lookup](https://lookup.icann.org/), which shows the registrar, the expiry date and the status. What you find there, and on the website itself, tells you which options are open.",
+      "Another extension is usually the cheapest route. On 9 November 2026, NameSilo charged $19.99 to register a .com ([NameSilo pricing](https://www.namesilo.com/pricing)). Buying from the owner costs whatever the owner asks. Waiting for the domain to expire is slow and uncertain: under ICANN rules an expired .com, .net or .org can sit in a grace period, a redemption period and a pending delete period before anyone else can register it, and the owner can renew during most of that time ([ICANN registrant FAQ](https://www.icann.org/resources/pages/domain-name-renewal-expiration-faqs-2018-12-07-en)).",
+      "NameMog is run by NameSilo. NameSilo sells domain registrations and runs the NameSilo Marketplace and the catch.club backorder service described on this page.",
+    ],
     datePublished: PUBLISHED,
-    dateModified: REVISED,
-    framework: {
-      heading: "Decision questions, in order",
-      intro: "Answer these in order. The first clear answer usually decides the path.",
-      criteria: [
-        {
-          name: "Is the taken domain an active business in your category?",
-          check: "Visit the site. If someone is already trading under that name in your field, a near-copy invites confusion and trademark trouble.",
-          inApp: "Not checked. Pick a different name.",
-        },
-        {
-          name: "Is it listed for sale?",
-          check: "Look for a 'for sale' landing page or a marketplace listing with a buy-now price or an offer form.",
-          inApp: "Marketplace listings and premium names are shown with their prices when found.",
-        },
-        {
-          name: "Who owns it, and is it locked?",
-          check: "ICANN Lookup shows the registrar, dates and status. Owner contact details are often redacted for privacy.",
-          inApp: "Not checked.",
-        },
-        {
-          name: "How will customers reach you?",
-          check: "If mainly by spoken word, protect the exact sound; if mainly by links and ads, a workaround costs less.",
-          inApp: "Set your buying intent so the weights match how you'll be found.",
-        },
-        {
-          name: "What would the workaround cost in score?",
-          check: "Score your best workaround against the same query so you can see exactly what you'd give up.",
-          inApp: "Trust and Resale drop with less familiar extensions; Brand Strength drops as labels get longer.",
-        },
+    dateModified: "2026-11-09",
+    sections: [
+      {
+        heading: "How do I find out who owns a taken domain and when it expires?",
+        paragraphs: [
+          "To find out who owns a taken domain and when it expires, search the domain in [ICANN Lookup](https://lookup.icann.org/). ICANN Lookup returns the registration data over RDAP: the registrar, the creation and expiry dates, and status codes such as a transfer lock. The owner's name and email are often redacted for privacy, so ICANN Lookup usually tells you where the domain is registered and when it expires, but not who holds it.",
+          "When the owner's details are redacted, visit the domain itself. A taken domain usually shows one of three things: a live business, a parked page with ads, or a for-sale page. A parked page often has an offer form; NameSilo's free parking pages, for example, let owners add a form that collects purchase offers ([NameSilo domain parking](https://www.namesilo.com/domain_parking.php)). A for-sale page or marketplace listing means the owner is ready to sell.",
+        ],
+      },
+      {
+        heading: "Should I register the same name in a different extension, and what does it cost?",
+        paragraphs: [
+          "Registering the same name in a different extension is the fastest and cheapest alternative when the .com is taken. NameSilo's registration prices on 9 November 2026 were $15.95 for a .net, $19.49 for a .co and $38.99 for a .io, from the official NameSilo API as returned by a NameMog search that day; a .com was $19.99 on [NameSilo's pricing page](https://www.namesilo.com/pricing).",
+          "Renewal prices matter more than the first year for a name you plan to keep. In the NameSilo API price list checked on 5 November 2026, a .io renewed at $69.99 a year and a .co at $38.99 a year, while a .com renewed at $19.99 and a .net at $15.95. Prices change, so check the price shown in your cart before you buy.",
+          "A different extension works best when most customers reach you through links, ads or an app store page. It works worst when a business in your field owns the .com, because people who hear your name will type .com and land on that business. Check the trademark register in your country before you build on the same name in a new extension.",
+        ],
+      },
+      {
+        heading: "How do I find an available variation of a taken domain name?",
+        paragraphs: [
+          "To find an available variation of a taken domain name, keep the word that carries the meaning and change the rest: add a short prefix such as get or try, add a suffix such as hq or app, reorder the words, or add a place. The [guide to finding a domain similar to a taken one](/guides/how-to-find-a-domain-name-similar-to-a-taken-one) covers six methods and which variants look like copies.",
+          "Variations are easy to generate in bulk. NameMog's search scores each available variation for brand strength, SEO fit and AI clarity against the same query, so you can compare them fairly. NameSilo's own search also suggests variations when a name is taken ([NameSilo blog, 28 January 2026](https://www.namesilo.com/blog/en/domain-name-search/what-to-do-if-the-domain-you-want-is-already-taken)). Domain investors and AI agents can check many variations at once through the [NameSilo MCP server](https://mcp.namesilo.com/), which exposes NameSilo's 80+ domain API methods, including bulk availability checks, to AI agents.",
+        ],
+      },
+      {
+        heading: "Can I buy a domain name that someone else already owns?",
+        paragraphs: [
+          "You can buy a domain name that someone else owns if the owner is willing to sell. If the domain is listed with a buy-now price, you can buy it straight away. On the NameSilo Marketplace, domains with a buy-now price are delivered immediately for most sales, auctions accept proxy bids, and some sales offer payment plans ([NameSilo Marketplace](https://www.namesilo.com/support/v2/articles/account-options/marketplace), checked 9 November 2026).",
+          "The NameSilo Marketplace charges sellers a 7.5% commission, with no minimums and no listing fees, according to the same NameSilo Marketplace page on 9 November 2026. The buyer pays the listed price.",
+          "Before you contact an owner or bid, set a walk-away price. Add the cost of your best alternative to what the exact name would save you, such as type-in visitors and the cost of renaming later, and do not pay more than that total. Before you pay, also [check the domain's history](/guides/how-to-check-a-used-domains-history-before-buying) for spam, malware or a blocklist entry you would inherit.",
+        ],
+      },
+      {
+        heading: "Can NameSilo contact the owner of a domain that isn't listed for sale?",
+        paragraphs: [
+          "Yes. For domains that are not listed in its marketplace, NameSilo offers a \"Try to Buy\" broker service through its partner Saw.com, according to [NameSilo's blog post of 28 January 2026](https://www.namesilo.com/blog/en/domain-name-search/what-to-do-if-the-domain-you-want-is-already-taken). A broker contacts the owner for you, negotiates the price and handles the transfer.",
+          "A broker is useful when the owner's details are redacted or when you do not want to reveal who is buying. The broker's fee is not published in that NameSilo post, so ask for it before you start. Some owners will not sell at any price.",
+        ],
+      },
+      {
+        heading: "What happens after I buy a domain held at another registrar?",
+        paragraphs: [
+          "After you buy a domain held at another registrar, you can keep it there or transfer it to your own registrar using the transfer authorization code from the seller. NameSilo says transfers to NameSilo complete automatically within 5 to 7 days, and the transfer adds one year to the existing expiry date unless the domain was renewed at the previous registrar shortly before the transfer ([NameSilo domain transfers](https://www.namesilo.com/domain/transfer-domains), checked 9 November 2026).",
+          "Domain investors who buy names to resell can park them at NameSilo for free, keep 100% of ad revenue (a Google AdSense account is required) and show an offer form on the parked page ([NameSilo domain parking](https://www.namesilo.com/domain_parking.php)).",
+        ],
+      },
+      {
+        heading: "How long after a domain expires can the owner still renew it?",
+        paragraphs: [
+          "After a .com, .net or .org domain expires, the owner can usually renew it during the registrar's auto-renew grace period, which ICANN describes as a period of 1 to 45 days that each registrar sets in its own terms ([ICANN: 5 things registrants should know about the ERRP](https://www.icann.org/resources/pages/registrant-about-errp-2018-12-07-en)). During that period the domain may be offered to third parties, depending on the registrar's terms.",
+          "Registrars must send the owner at least two renewal reminders, about one month and about one week before expiry, under ICANN's [Expired Registration Recovery Policy](https://www.icann.org/en/contracted-parties/consensus-policies/expired-registration-recovery-policy/expired-registration-recovery-policy-21-02-2024-en). Many owners renew after the reminders, so an expiry date alone is a weak signal that a domain will become available.",
+        ],
+      },
+      {
+        heading: "When does an expired domain become available for anyone to register?",
+        paragraphs: [
+          "An expired .com, .net or .org domain becomes available to the public only after it is deleted and then passes two more stages. According to [ICANN's registrant FAQ](https://www.icann.org/resources/pages/domain-name-renewal-expiration-faqs-2018-12-07-en), a deleted domain enters a redemption grace period of 30 days, during which the previous owner can still restore it. If it is not restored, the domain enters pending delete status for 5 days, and is then released for registration on a first-come, first-served basis.",
+          "Added to an auto-renew grace period of up to 45 days, a gTLD domain can take up to about 80 days from its expiry date to become available. Many valuable domains never reach that point because the owner renews them or the registrar sells them before deletion.",
+        ],
+      },
+      {
+        heading: "How does backordering a taken domain work?",
+        paragraphs: [
+          "A backorder asks a catching service to try to register a domain the moment it is released. NameSilo's backorder platform is [catch.club](https://catch.club/). According to [NameSilo's blog of 15 January 2026](https://www.namesilo.com/blog/en/domain-backorder/how-multiple-backorders-are-resolved), you pay only if catch.club catches the domain, but you must prefund your account to place a backorder.",
+          "When several people backorder the same expiring domain at catch.club and catch.club catches it, those users enter a private auction, which typically runs for three to seven days. If only one user placed a backorder, that user gets the domain for a 20% backorder commission plus the domain's registration cost, as the same NameSilo post describes it.",
+          "A backorder is not a guarantee. Other registrars run their own catching services for the same drop, and if another service catches the domain, catch.club users have no recourse. Keep an available alternative ready while you wait.",
+        ],
+      },
+      {
+        heading: "What can I do if someone registered my trademark as a domain name in bad faith?",
+        paragraphs: [
+          "If someone registered your trademark as a domain name in bad faith, you can file a complaint under the Uniform Domain-Name Dispute-Resolution Policy (UDRP), which all ICANN-accredited registrars must follow ([ICANN UDRP](https://www.icann.org/resources/pages/help/dndr/udrp-en)). A trademark owner files the complaint with an approved dispute-resolution service provider, or brings a case in court.",
+          "The UDRP covers abusive registrations, such as cybersquatting. Wanting the same name for a new business is not enough, and a domain registered before your trademark existed rarely qualifies. Talk to a trademark lawyer before you file.",
+        ],
+      },
+      {
+        heading: "Which option should I pick when my domain name is taken?",
+        paragraphs: [
+          "Pick the option from what the taken domain is doing. If an active business in your field uses the domain, choose a new name rather than a variation, because customers and trademark law will treat the two as the same. If the domain is listed for sale under your walk-away price, buy it. If it is parked with an offer form, make an offer or use a broker. If it is unused and close to its expiry date, place a backorder and keep an available alternative ready. If it is none of these, register a different extension or a variation.",
+        ],
+      },
+    ],
+    conditions: {
+      heading: "When this answer changes",
+      paragraphs: [
+        "The expiry timeline on this page applies to generic top-level domains such as .com, .net and .org, which follow ICANN policy. Country-code domains such as .io and .co follow their own registry rules, so check the registry's renewal and deletion policy for those.",
+        "Registrar terms vary. Each registrar sets its own auto-renew grace period, renewal fees after expiry and redemption fees, so read the current registrar's terms for the domain you want. Prices on this page were checked on the dates shown and may have changed since.",
       ],
     },
-    signalsHeading: "Scores that help you price the decision",
-    signalNotes: [
-      { key: "trust", note: "Shows the cost of a different extension in one number (.com 100, .net 85, .io 75, .co 70), which is often the deciding gap between buying and working around." },
-      { key: "brand", note: "Drops as a modifier lengthens the label past 12 characters, so it shows when a workaround stops reading like a brand." },
-      { key: "resale", note: "Worth checking before you pay a premium: it shows whether the exact name would hold its structural value if you ever sold it." },
-    ],
-    table: {
-      heading: "What the owner's situation tells you to do",
-      caption: "Match what you find to a row. If two rows fit, take the more cautious path.",
-      columns: ["Situation", "What you see", "Path", "First move"],
-      rows: [
-        ["Active business in your field", "A live site selling something like what you sell", "Rename", "Start a new shortlist; don't build on a variant"],
-        ["Active business in another field", "A live site in an unrelated industry", "Work around, carefully", "Check the trademark register in your class before using a variant"],
-        ["Listed with a price", "Marketplace listing or buy-now landing page", "Buy if under your ceiling", "Audit its history, then buy through the marketplace transfer"],
-        ["Parked, taking offers", "Ad page or 'make an offer' form", "Negotiate with a ceiling", "Set your walk-away price first; expect weeks"],
-        ["Redirects to a bigger company", "The domain forwards to another brand's site", "Rename", "Assume it's a kept brand asset; for example, brightnest.com forwards to angi.com"],
-        ["No site, near expiry", "ICANN Lookup shows an expiry date close by and no renewal", "Watch, with a fallback", "Place a backorder and keep your workaround ready"],
-      ],
-    },
-    steps: {
-      heading: "How to set a walk-away price",
-      items: [
-        "Price your best available workaround: its cost plus what you'd spend explaining a less obvious name (a tagline, extra ad copy, a second domain to redirect).",
-        "Add what the exact name saves you: type-in visitors who would otherwise reach the current owner, and the cost of renaming later if the workaround doesn't hold up.",
-        "That total is your ceiling. Write it down before you contact the seller.",
-        "Open below the ceiling and walk away if the price passes it. Your workaround is already scored and ready to buy.",
-      ],
-    },
-    whenNotHeading: "When not to buy the taken domain, even if it's for sale",
-    whenNot: [
-      "When the seller can't show they control it and the marketplace or registrar can't confirm the transfer.",
-      "When the history audit finds spam, malware, a blocklist entry or a manual action you'd inherit.",
-      "When the price is above your walk-away number. The workaround you already scored is the better deal.",
-    ],
-    mistakesHeading: "Negotiation and workaround mistakes",
-    mistakes: [
-      "Settling on the .net when a competitor owns the .com in the same field; their site gets your type-in traffic.",
-      "Making a first offer before you know your walk-away price.",
-      "Stacking fixes (hyphen + modifier + new extension) until the name no longer resembles a brand.",
-      "Contacting the owner from a well-known company address before you've decided; it signals a funded buyer.",
-    ],
     nextStep: {
-      text: "Enter the taken name or your business description. Taken names stay visible as benchmarks, and only buyable alternatives are recommended, so you can see what each workaround costs in score before you set your ceiling.",
-      links: [SEARCH_CTA, { href: "/guides/how-to-find-a-domain-name-similar-to-a-taken-one", label: "Generate close variants" }],
+      text: "Enter the taken name or a description of your business to see which variations and other extensions are available, with their NameSilo prices and scores.",
+      links: [{ href: "/", label: "Search available alternatives" }],
     },
-    faqs: [
-      {
-        q: "Can I buy a domain name that is already taken?",
-        a: "Sometimes. If it's listed on a marketplace with a buy-now price you can purchase it directly; otherwise you can make an offer through the marketplace or the owner's landing page. Some owners won't sell at any price.",
-      },
-      {
-        q: "How do I find out who owns a domain?",
-        a: "Use ICANN Lookup, which returns registration data over RDAP: registrar, dates and status. Owner contact details are often redacted, in which case contact the owner through the registrar or a for-sale page.",
-      },
-      {
-        q: "What if the domain I want is about to expire?",
-        a: "Check its expiry date and status in ICANN Lookup, but don't plan around it dropping: many owners renew at the last minute, and an expired name is usually held for a period before it is released. Place a backorder if you want it and keep your fallback ready.",
-      },
-      {
-        q: "How does buying through the NameSilo Marketplace work?",
-        a: "According to NameSilo's support page, sellers can set a buy-now price, run an auction or take offers, and some sales support payment plans. Domains with a buy-now price can be purchased immediately.",
-      },
+    faqs: [],
+    sources: [
+      { href: "https://lookup.icann.org/", label: "ICANN Lookup (registration data via RDAP), checked 9 November 2026" },
+      { href: "https://www.icann.org/resources/pages/domain-name-renewal-expiration-faqs-2018-12-07-en", label: "ICANN: FAQs for Registrants, Domain Name Renewals and Expiration (30-day redemption, 5-day pending delete), checked 9 November 2026" },
+      { href: "https://www.icann.org/resources/pages/registrant-about-errp-2018-12-07-en", label: "ICANN: 5 Things Every Registrant Should Know About the ERRP (1 to 45-day auto-renew grace period), checked 9 November 2026" },
+      { href: "https://www.icann.org/en/contracted-parties/consensus-policies/expired-registration-recovery-policy/expired-registration-recovery-policy-21-02-2024-en", label: "ICANN: Expired Registration Recovery Policy (updated 21 February 2024)" },
+      { href: "https://www.icann.org/resources/pages/help/dndr/udrp-en", label: "ICANN: Uniform Domain-Name Dispute-Resolution Policy, checked 9 November 2026" },
+      { href: "https://www.namesilo.com/pricing", label: "NameSilo: domain pricing, checked 9 November 2026" },
+      NAMESILO_MARKETPLACE,
+      { href: "https://www.namesilo.com/blog/en/domain-name-search/what-to-do-if-the-domain-you-want-is-already-taken", label: "NameSilo blog: Domain Taken? What to Do Next (28 January 2026)" },
+      { href: "https://www.namesilo.com/blog/en/domain-backorder/how-multiple-backorders-are-resolved", label: "NameSilo blog: How Multiple Backorders Are Resolved (15 January 2026)" },
+      { href: "https://www.namesilo.com/domain/transfer-domains", label: "NameSilo: domain transfers, checked 9 November 2026" },
+      { href: "https://www.namesilo.com/domain_parking.php", label: "NameSilo: domain parking, checked 9 November 2026" },
+      { href: "https://mcp.namesilo.com/", label: "NameSilo MCP server for AI agents, checked 9 November 2026" },
     ],
-    sources: [ICANN_LOOKUP, NAMESILO_MARKETPLACE],
     related: [
       "how-to-find-a-domain-name-similar-to-a-taken-one",
       HISTORY_SLUG,

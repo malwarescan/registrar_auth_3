@@ -46,7 +46,7 @@ const DECISION_GUIDES = [
   {
     situation: "Your first choice is taken",
     href: "/guides/alternatives-when-the-domain-name-you-want-is-taken",
-    label: "Decide whether to buy it, work around it or rename",
+    label: "Buy it, backorder it or pick an alternative",
   },
   {
     situation: "Wanting AI assistants to name you",
