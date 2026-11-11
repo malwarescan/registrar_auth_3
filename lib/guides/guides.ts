@@ -721,8 +721,8 @@ export const GUIDES: Guide[] = [
       "When the owner is private, you have three routes. Send a message through the email address or web form that the registrar must publish in place of the owner's email. If you have a legal basis, such as a trademark or abuse complaint, file a disclosure request with the registrar. If you want to buy the domain, check for a marketplace listing or an offer form on the domain itself, or use a broker.",
       "NameMog is run by NameSilo, a domain registrar. NameSilo provides free WHOIS privacy through PrivacyGuardian.org, and namemog.com, the worked example on this page, is registered at NameSilo with that privacy turned on.",
     ],
-    datePublished: "2026-11-11",
-    dateModified: "2026-11-11",
+    datePublished: "2026-11-12",
+    dateModified: "2026-11-12",
     sections: [
       {
         heading: "How do I look up who owns a domain?",
