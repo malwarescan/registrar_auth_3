@@ -112,6 +112,7 @@ const COMPARE_EXAMPLE: GuideLink = {
 };
 
 export const HISTORY_SLUG = "how-to-check-a-used-domains-history-before-buying";
+export const OWNER_SLUG = "how-to-find-out-who-owns-a-domain";
 /** Former slug of the history guide; 301-redirected in next.config.ts. */
 export const HISTORY_OLD_SLUG = "how-to-check-domain-name-seo-relevance";
 
@@ -707,6 +708,120 @@ export const GUIDES: Guide[] = [
       HISTORY_SLUG,
       "how-to-shortlist-domain-names-for-a-new-company",
       "what-signals-make-a-domain-name-valuable",
+    ],
+  },
+  {
+    slug: OWNER_SLUG,
+    question: "How do I find out who owns a domain name?",
+    metaTitle: "How to Find Out Who Owns a Domain (2026 RDAP Guide)",
+    metaDescription:
+      "Look the domain up in ICANN Lookup (RDAP) to see its registrar, dates and status. If the owner is private, use the registrar's contact relay, or file a disclosure request if you have a legal basis. ICANN policy checked 11 November 2026.",
+    answer: [
+      "To find out who owns a domain name, look it up in [ICANN Lookup](https://lookup.icann.org/). It returns the domain's registration data over RDAP, the protocol that replaced WHOIS: the registrar, the creation and expiry dates, the status codes and, where the owner has allowed it, the owner's name and organization. For many domains the owner's name, street address and phone number are redacted or replaced by a privacy service, so the lookup tells you where the domain is registered and how to reach the owner, but not who the owner is.",
+      "When the owner is private, you have three routes. Send a message through the email address or web form that the registrar must publish in place of the owner's email. If you have a legal basis, such as a trademark or abuse complaint, file a disclosure request with the registrar. If you want to buy the domain, check for a marketplace listing or an offer form on the domain itself, or use a broker.",
+      "NameMog is run by NameSilo, a domain registrar. NameSilo provides free WHOIS privacy through PrivacyGuardian.org, and namemog.com, the worked example on this page, is registered at NameSilo with that privacy turned on.",
+    ],
+    datePublished: "2026-11-11",
+    dateModified: "2026-11-11",
+    sections: [
+      {
+        heading: "How do I look up who owns a domain?",
+        paragraphs: [
+          "To look up who owns a domain, enter the domain name in [ICANN Lookup](https://lookup.icann.org/), the free RDAP client that ICANN runs in the browser ([ICANN: Information for RDAP Users](https://www.icann.org/resources/pages/rdap-information-for-users-2018-08-31-en)). Many registrars, including [NameSilo](https://www.namesilo.com/whois), also offer a lookup form on their own site, and ICANN publishes an open-source command-line RDAP client for checking many domains at once.",
+          "For a .com, the lookup draws on two sources. The registry, Verisign, holds the registrar, the dates and the status codes. The registrar holds the owner's contact record and publishes it, with any redactions, on its own RDAP server; the registry's record links to it.",
+        ],
+      },
+      {
+        heading: "What replaced WHOIS?",
+        paragraphs: [
+          "RDAP, the Registration Data Access Protocol, replaced WHOIS for generic top-level domains such as .com, .net and .org. ICANN says all gTLD registries and registrars must provide RDAP, and that as of 28 January 2025 they are no longer required to provide WHOIS, except for .com, .name and .post ([ICANN: RDAP](https://www.icann.org/rdap)).",
+          "RDAP returns the same kind of data as WHOIS in a standard, machine-readable format, and it shows which fields were redacted rather than leaving them blank.",
+        ],
+      },
+      {
+        heading: "Why is the domain owner's name hidden or redacted?",
+        paragraphs: [
+          "The owner's name is hidden for one of two reasons: the registrar redacted it under ICANN's Registration Data Policy, or the owner uses a privacy or proxy service. Under the policy, which took effect on 21 August 2025, a registrar that redacts personal data must remove the registrant's name, street, postal code and phone number from public output and mark them as redacted ([ICANN Registration Data Policy](https://www.icann.org/en/contracted-parties/consensus-policies/registration-data-policy), section 9.2). The registrant's state or province and country are not on that must-redact list, so they often still appear, and the city may or may not.",
+          "When an owner uses a privacy or proxy service, the record shows the service's details instead of the owner's (section 9.2.5 of the same policy). At NameSilo, for example, private domains show PrivacyGuardian.org's name, address and phone number, and a unique @privacyguardian.org email address that forwards to the owner ([NameSilo: WHOIS Privacy](https://www.namesilo.com/support/v2/articles/domain-manager/whois-privacy)). NameSilo charges nothing for this privacy service ([NameSilo pricing](https://www.namesilo.com/pricing), checked 11 November 2026).",
+          "An owner can choose to publish their details. The policy requires registrars to offer registrants the option to consent to publication, and an organization name is published when the registrant agrees to it.",
+        ],
+      },
+      {
+        heading: "How do I contact a domain owner whose details are private?",
+        paragraphs: [
+          "To contact a domain owner whose details are private, use the email address or web form shown in the record's email field. ICANN's Registration Data Policy requires a registrar that redacts the owner's email to publish an email address or a link to a web form that reaches the owner without revealing who they are (section 9.2.3).",
+          "On a NameSilo domain with privacy turned on, that is an @privacyguardian.org address unique to the owner's account, and mail sent to it is forwarded to the owner ([NameSilo: WHOIS Privacy](https://www.namesilo.com/support/v2/articles/domain-manager/whois-privacy)). Write a short message that says who you are and what you want, because the owner decides whether to reply. NameSilo states that it cannot make a registrant respond ([NameSilo: Contacting Registrants](https://www.namesilo.com/support/v2/articles/policies/contacting-registrants)), and the same applies at other registrars.",
+          "Do not contact the registrar to ask who the owner is. The registrar manages the registration but is not the owner, and NameSilo, for example, asks people not to contact it to help them acquire a domain registered there ([NameSilo: How to buy domains registered with NameSilo](https://www.namesilo.com/support/v2/articles/about/how-to-buy-domains-registered)).",
+        ],
+      },
+      {
+        heading: "Can I get the real name and address of a private domain owner?",
+        paragraphs: [
+          "You can ask for the owner's non-public data by filing a disclosure request with the registrar, but the registrar decides whether to release it. Under ICANN's Registration Data Policy (section 10), each registrar must link from its homepage to its disclosure process. A request must identify you, list the data you want, state your legal rights and the reason for the request, and affirm that it is made in good faith. The registrar must acknowledge a complete request within two business days and respond within 30 calendar days, either with the data or with the specific reasons for refusing it.",
+          "NameSilo takes these requests through its [RDAP Disclosure Request Form](https://www.namesilo.com/support/rdap). As of 11 November 2026, the form says NameSilo acknowledges a request within 48 hours and gives a final answer within 30 calendar days, by email.",
+          "ICANN also runs the [Registration Data Request Service (RDRS)](https://www.icann.org/rdrs-en), a free central form that sends requests to participating registrars. ICANN describes it as a path for consumer protection advocates, cybersecurity specialists, government officials, intellectual property professionals, law enforcement and others with a legitimate interest. RDRS requires an ICANN account, and the ICANN Board has extended it for up to two years after its pilot ended in November 2025.",
+          "A disclosure request asks the registrar to weigh your stated legal basis against the owner's privacy rights, and it can be refused. If you only want to buy the domain, the owner's contact relay, a marketplace listing or a broker does not depend on that decision.",
+        ],
+      },
+      {
+        heading: "What can I do if the owner doesn't reply?",
+        paragraphs: [
+          "If the owner doesn't reply, check whether the domain is listed for sale, visit the domain to look for an offer form, or ask a broker to contact the owner for you. NameSilo suggests the same order for domains registered with it: search its Marketplace, look for a \"Submit Offer\" link on a parked page, and otherwise contact the registrant through WHOIS ([NameSilo: How to buy domains registered with NameSilo](https://www.namesilo.com/support/v2/articles/about/how-to-buy-domains-registered)).",
+          "If none of these work, note the expiry date from the lookup and decide whether to backorder the domain or pick an alternative. The [guide to what to do when a domain name is taken](/guides/alternatives-when-the-domain-name-you-want-is-taken) covers buying, brokers, backorders, ICANN's expiry timeline and UDRP complaints.",
+        ],
+      },
+    ],
+    example: {
+      heading: "Worked example: what a private .com record shows",
+      intro:
+        "We looked up namemog.com on 11 November 2026 through the Verisign registry RDAP server and NameSilo's registrar RDAP server. The domain uses NameSilo's free privacy service, so the record shows the privacy service rather than the owner.",
+      table: {
+        heading: "RDAP record for namemog.com",
+        caption: "Public RDAP responses retrieved 11 November 2026. Registry data from rdap.verisign.com; contact data from rdap.namesilo.com.",
+        columns: ["Field", "What the lookup showed", "Source"],
+        rows: [
+          ["Registrar", "NameSilo, LLC", "Registry and registrar"],
+          ["Created / expires", "3 June 2026 / 3 June 2027", "Registry"],
+          ["Status", "client transfer prohibited (a transfer lock)", "Registry"],
+          ["Registrant name", "\"Privacy User #\" followed by a number", "Registrar"],
+          ["Registrant organization", "See PrivacyGuardian.org", "Registrar"],
+          ["Registrant email", "A unique @privacyguardian.org address that forwards to the owner", "Registrar"],
+          ["Registrant address and phone", "PrivacyGuardian.org's address in Phoenix, Arizona, and its phone number", "Registrar"],
+          ["Abuse contact", "abuse@namesilo.com", "Registrar"],
+        ],
+      },
+      verdict:
+        "The lookup tells you where namemog.com is registered, when it expires and how to send its owner a message, but not the owner's name. Records at other registrars differ in detail but follow the same ICANN rules.",
+    },
+    conditions: {
+      heading: "When this answer changes",
+      paragraphs: [
+        "The rules on this page apply to generic top-level domains such as .com, .net and .org, which follow ICANN policy. Country-code domains follow their registry's rules: for example, NameSilo does not allow WHOIS privacy on .us domains, and .ca domains cannot use privacy, although the details of individual .ca owners can be hidden ([NameSilo: WHOIS Privacy](https://www.namesilo.com/support/v2/articles/domain-manager/whois-privacy)).",
+        "Registrars may redact more than ICANN requires, and some publish more when the owner consents, so two domains with the same extension can show different amounts of data. RDRS only reaches registrars that take part in it; for others, use the registrar's own disclosure process. Policy details on this page were checked on 11 November 2026.",
+      ],
+    },
+    nextStep: {
+      text: "If the owner won't sell, enter the name or a description of your business to see which variations and other extensions are available, with their NameSilo prices and scores.",
+      links: [{ href: "/", label: "Search available alternatives" }],
+    },
+    faqs: [],
+    sources: [
+      { href: "https://lookup.icann.org/", label: "ICANN Lookup (registration data via RDAP), checked 11 November 2026" },
+      { href: "https://www.icann.org/rdap", label: "ICANN: Registration Data Access Protocol (WHOIS no longer required from 28 January 2025, except .com, .name and .post), checked 11 November 2026" },
+      { href: "https://www.icann.org/resources/pages/rdap-information-for-users-2018-08-31-en", label: "ICANN: Information for RDAP Users (ICANN Lookup and command-line client), checked 11 November 2026" },
+      { href: "https://www.icann.org/en/contracted-parties/consensus-policies/registration-data-policy", label: "ICANN: Registration Data Policy, effective 21 August 2025 (sections 9.2 redaction and 10 disclosure requests), checked 11 November 2026" },
+      { href: "https://www.icann.org/rdrs-en", label: "ICANN: Registration Data Request Service (RDRS), checked 11 November 2026" },
+      { href: "https://www.namesilo.com/support/v2/articles/domain-manager/whois-privacy", label: "NameSilo: WHOIS Privacy (free, via PrivacyGuardian.org), checked 11 November 2026" },
+      { href: "https://www.namesilo.com/pricing", label: "NameSilo: domain pricing (WHOIS privacy always free), checked 11 November 2026" },
+      { href: "https://www.namesilo.com/support/rdap", label: "NameSilo: RDAP Disclosure Request Form (48-hour acknowledgement, 30-day response), checked 11 November 2026" },
+      { href: "https://www.namesilo.com/support/v2/articles/policies/contacting-registrants", label: "NameSilo: Contacting Registrants, checked 11 November 2026" },
+      { href: "https://www.namesilo.com/support/v2/articles/about/how-to-buy-domains-registered", label: "NameSilo: How to buy domains registered with NameSilo, checked 11 November 2026" },
+      { href: "https://rdap.verisign.com/com/v1/domain/namemog.com", label: "Verisign registry RDAP record for namemog.com, retrieved 11 November 2026" },
+    ],
+    related: [
+      "alternatives-when-the-domain-name-you-want-is-taken",
+      HISTORY_SLUG,
+      "how-to-find-a-domain-name-similar-to-a-taken-one",
     ],
   },
   {
